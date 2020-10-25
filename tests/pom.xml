@@ -6,7 +6,11 @@
     <parent>
         <groupId>com.backbase.oss</groupId>
         <artifactId>backbase-openapi-tools</artifactId>
+<<<<<<< HEAD
         <version>0.2.8</version>
+=======
+        <version>0.2.8-cleanup-validation-SNAPSHOT</version>
+>>>>>>> dfe1fd3 ([TEMP] set version)
     </parent>
 
     <artifactId>tests</artifactId>
