@@ -13,9 +13,10 @@ import org.openapitools.codegen.CliOption;
 import org.openapitools.codegen.CodegenModel;
 import org.openapitools.codegen.CodegenParameter;
 import org.openapitools.codegen.CodegenProperty;
+import org.openapitools.codegen.languages.SpringCodegen;
 import org.openapitools.codegen.templating.mustache.IndentedLambda;
 
-public class SpringCodeGen extends org.openapitools.codegen.languages.SpringCodegen {
+public class SpringCodeGenBB extends SpringCodegen {
     public static final String USE_CLASS_LEVEL_BEAN_VALIDATION = "useClassLevelBeanValidation";
     public static final String ADD_SERVLET_REQUEST = "addServletRequest";
     public static final String USE_LOMBOK_ANNOTATIONS = "useLombokAnnotations";
@@ -77,7 +78,9 @@ public class SpringCodeGen extends org.openapitools.codegen.languages.SpringCode
     @Getter
     protected boolean useSetForUniqueItems = true;
 
-    public SpringCodeGen() {
+    public SpringCodeGenBB() {
+        embeddedTemplateDir = templateDir = "JavaSpringBB";
+
         cliOptions.add(CliOption.newBoolean(USE_CLASS_LEVEL_BEAN_VALIDATION,
             "Add @Validated to class-level Api interfaces", useClassLevelBeanValidation));
         cliOptions.add(CliOption.newBoolean(ADD_SERVLET_REQUEST,
@@ -90,6 +93,11 @@ public class SpringCodeGen extends org.openapitools.codegen.languages.SpringCode
             "Use java.util.Set for arrays that have uniqueItems set to true", useSetForUniqueItems));
 
         apiNameSuffix = "Api";
+    }
+
+    @Override
+    public String getName() {
+        return "spring-bb";
     }
 
     @Override
