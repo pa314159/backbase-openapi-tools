@@ -1,11 +1,11 @@
 {{#openApiNullable}}{{!
     }}{{#isNullable}}{{!
-        }}JsonNullable<{{>validatedDataTypeWithEnum}}>{{!
+        }}JsonNullable<{{{datatypeWithEnum}}}>{{!
     }}{{/isNullable}}{{!
     }}{{^isNullable}}{{!
-        }}{{>validatedDataTypeWithEnum}}{{!
+        }}{{{datatypeWithEnum}}}{{!
     }}{{/isNullable}}{{!
 }}{{/openApiNullable}}{{!
 }}{{^openApiNullable}}{{!
-    }}{{>validatedDataTypeWithEnum}}{{!
+    }}{{{datatypeWithEnum}}}{{!
 }}{{/openApiNullable}}
