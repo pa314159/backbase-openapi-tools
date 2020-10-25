@@ -16,11 +16,17 @@ properties:
   pInteger:
     type: integer
     minimum: 0
-  pNumber:
+  pDouble:
     type: number
     format: double
     minimum: 0
     maximum: 10
+    exclusiveMaximum: true
+  pNumber:
+    type: number
+    minimum: -1000000000000000000
+    exclusiveMinimum: true
+    maximum: 1000000000000000000
     exclusiveMaximum: true
   pDate:
     x-extra-annotation: '@javax.persistence.Column(name="date") @javax.persistence.Access(javax.persistence.AccessType.PROPERTY)'

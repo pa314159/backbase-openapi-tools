@@ -25,7 +25,7 @@ properties:
     items:
       type: integer
       minimum: 0
-  pNumber:
+  pDouble:
     type: array
     uniqueItems: true
     items:
@@ -33,6 +33,15 @@ properties:
       format: double
       minimum: 0
       maximum: 10
+      exclusiveMaximum: true
+  pNumber:
+    type: array
+    uniqueItems: true
+    items:
+      type: number
+      minimum: -1000000000000000000
+      exclusiveMinimum: true
+      maximum: 1000000000000000000
       exclusiveMaximum: true
   pDate:
     type: array

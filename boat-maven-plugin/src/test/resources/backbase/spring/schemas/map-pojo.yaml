@@ -21,13 +21,21 @@ properties:
     additionalProperties:
       type: integer
       minimum: 0
-  pNumber:
+  pDouble:
     type: object
     additionalProperties:
       type: number
       format: double
       minimum: 0
       maximum: 10
+      exclusiveMaximum: true
+  pNumber:
+    type: object
+    additionalProperties:
+      type: number
+      minimum: -1000000000000000000
+      exclusiveMinimum: true
+      maximum: 1000000000000000000
       exclusiveMaximum: true
   pDate:
     type: object

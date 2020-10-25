@@ -3,15 +3,15 @@ package com.backbase.oss.boat;
 import static java.util.stream.Collectors.groupingBy;
 import static org.junit.Assert.assertEquals;
 
-import com.backbase.oss.codegen.SpringCodeGen;
+import com.backbase.oss.codegen.SpringCodeGenBB;
 import org.junit.Test;
 import org.openapitools.codegen.CliOption;
 
-public class SpringCodeGenTests {
+public class SpringCodeGenBBTests {
 
     @Test
     public void clientOptsUnicity() {
-        SpringCodeGen gen = new SpringCodeGen();
+        SpringCodeGenBB gen = new SpringCodeGenBB();
         gen.cliOptions()
             .stream()
             .collect(groupingBy(CliOption::getOpt))
