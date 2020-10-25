@@ -27,6 +27,9 @@ BOAT is still under development and subject to change.
   * Removes unnecessary spaces in the docs
   * Fixes item focus on left navigation
 
+* *Spring Generator*
+  * Added `useWithModifiers` to use the `with` prefix for POJO modifiers (breaking change, defaults to `true` for compatibility with the old RAML generator).
+
 ## 0.2.7
 
 * *Spring Generator*
