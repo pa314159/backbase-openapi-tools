@@ -1,0 +1,20 @@
+
+apply plugin: 'eclipse'
+
+eclipse {
+	classpath {
+		file {
+			whenMerged { clp ->
+				File dist = file( "${gradle.gradleUserHomeDir}/wrapper/dists/gradle-${gradle.gradleVersion}-all" )
+
+				if( dist.exists() ) {
+					File gradleSrc = file( "${dist.listFiles()[0]}/gradle-${gradle.gradleVersion}/src" )
+
+					clp.entries
+							.findAll {  it.kind == 'lib' && it.sourcePath == null && it.path =~ "/gradle[^/]*.jar" }
+							.each { it.sourcePath = clp.fileReference( gradleSrc ) }
+				}
+			}
+		}
+	}
+}

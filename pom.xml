@@ -76,6 +76,7 @@
         <module>boat-scaffold</module>
         <module>boat-terminal</module>
         <module>boat-maven-plugin</module>
+        <module>boat-gradle-plugin</module>
         <!-- Code Coverage Project -->
         <module>tests</module>
     </modules>

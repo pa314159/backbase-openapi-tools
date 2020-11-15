@@ -1,0 +1,7 @@
+
+sourceSets {
+	all { set ->
+		dependencies.add set.compileOnlyConfigurationName, 'org.projectlombok:lombok:1.18.16'
+		dependencies.add set.annotationProcessorConfigurationName, configurations[set.compileOnlyConfigurationName]
+	}
+}

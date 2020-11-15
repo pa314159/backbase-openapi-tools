@@ -1,0 +1,30 @@
+repositories {
+	mavenLocal()
+	mavenCentral()
+}
+
+apply plugin: 'java-gradle-plugin'
+apply plugin: 'groovy'
+
+apply from: 'gradle/eclipse.gradle'
+apply from: 'gradle/lombok.gradle'
+
+defaultTasks 'build'
+
+gradlePlugin {
+    plugins {
+        boat {
+            id = 'com.backbase.oss.boat'
+            implementationClass = 'com.backbase.oss.boat.GradlePlugin'
+        }
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13'
+    testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
+}
+
+wrapper {
+	distributionType = 'all'
+}
