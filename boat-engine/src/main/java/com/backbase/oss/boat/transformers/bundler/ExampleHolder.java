@@ -1,5 +1,6 @@
 package com.backbase.oss.boat.transformers.bundler;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.swagger.v3.oas.models.examples.Example;
 import java.util.Map;
@@ -18,6 +19,23 @@ public abstract class ExampleHolder<T> {
         + "%1$s:\n"
         + "  $ref: %2$s";
     private static final String REF_KEY = "$ref";
+
+    private static class StringExampleHolder extends ExampleHolder<String> {
+
+        StringExampleHolder(String example) {
+            super(null, example);
+
+            setContent(example);
+        }
+
+        @Override
+        String getRef() {
+            return null;
+        }
+
+        @Override
+        void replaceRef(String ref) {}
+    }
 
     private static class ExampleExampleHolder extends ExampleHolder<Example> {
         private final boolean componentExample;
@@ -70,6 +88,24 @@ public abstract class ExampleHolder<T> {
         }
     }
 
+    private static class ArrayNodeExampleHolder extends ExampleHolder<ArrayNode> {
+        private ArrayNodeExampleHolder(ArrayNode arrayNode) {
+            super(null, arrayNode);
+
+            // TODO what?
+        }
+
+        @Override
+        String getRef() {
+            return example().get(REF_KEY).asText();
+        }
+
+        @Override
+        void replaceRef(String ref) {
+            // TODO what?
+        }
+    }
+
     private static class MapExampleHolder extends ExampleHolder<Map> {
 
         private MapExampleHolder(Map map) {
@@ -92,7 +128,6 @@ public abstract class ExampleHolder<T> {
     private String content;
 
     private ExampleHolder(String name, T example) {
-        super();
         this.name = name;
         this.example = example;
     }
@@ -110,10 +145,17 @@ public abstract class ExampleHolder<T> {
     public static ExampleHolder<? extends Object> of(Object o) {
         if (o instanceof ObjectNode) {
             return new ObjectNodeExampleHolder((ObjectNode) o);
-        } else if (o instanceof Map) {
+        }
+        if (o instanceof ArrayNode) {
+            return new ArrayNodeExampleHolder((ArrayNode) o);
+        }
+        if (o instanceof String) {
+            return new StringExampleHolder((String) o);
+        }
+        if (o instanceof Map) {
             return new MapExampleHolder((Map) o);
         }
-        else throw new RuntimeException("Unknown type backing example " + o.getClass().getName());
+        throw new RuntimeException("Unknown type backing example " + o.getClass().getName());
     }
 
     @Override

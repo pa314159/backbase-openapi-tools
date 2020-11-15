@@ -1,0 +1,55 @@
+openapi: "3.0.3"
+info:
+  version: 3.1.4
+  title: Twos
+  license:
+    name: MIT
+paths:
+  '/client-api/v1/twos':
+    get:
+      summary: List all twos
+      operationId: listTwos
+      responses:
+        '200':
+          description: A paged array of twos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Twos"
+              example: 
+                $ref: '#/components/examples/twos-json'
+            text/csv:
+              schema:
+                $ref: "#/components/schemas/Twos"
+              example: |
+                1,info11,info12
+                2,info21,info22
+components:
+  schemas:
+    Twos:
+      type: object
+      properties:
+        id:
+          type: number
+          format: integer
+          description: The id of these two.
+          example: 212113
+        info1:
+          type: string
+          description: info1
+          example: info 1
+        info 2:
+          type: string
+          description: info2
+          example: |
+            info 2
+            multi line
+
+
+  examples:
+    twos-json:
+      value: |
+        [
+          { "id": 1, "info1": "info11", "info2": "info12" },
+          { "id": 2, "info1": "info21", "info2": "info22" },
+        ]
