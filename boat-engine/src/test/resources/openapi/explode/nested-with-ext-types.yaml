@@ -1,0 +1,18 @@
+openapi: '3.0.3'
+
+info:
+  title: title
+  version: version
+
+paths: {}
+
+components:
+  schemas:
+    One:
+      $ref: nested-with-ext-types/one.yaml
+    Three:
+      type: object
+      properties:
+        id:
+          type: integer
+          

@@ -1,0 +1,9 @@
+type: object
+properties:
+  message:
+    type: string
+  supportedMediaTypes:
+    type: array
+    description: List of supported media types for this endpoint
+    items:
+      type: string

@@ -7,6 +7,7 @@
     <root level="INFO">
         <appender-ref ref="COLOR"/>
     </root>
-    <logger name="org.raml" level="INFO"/>
+    <logger name="com.backbase.oss.boat" level="ALL"/>
     <logger name="com.backbase.oss.boat.loader.RamlResourceLoader" level="INFO"/>
+    <logger name="org.raml" level="INFO"/>
 </configuration>

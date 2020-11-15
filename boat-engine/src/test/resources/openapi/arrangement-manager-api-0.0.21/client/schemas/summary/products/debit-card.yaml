@@ -1,0 +1,26 @@
+allOf:
+  - $ref: '../../../openapi.yaml#/components/schemas/BaseProductSummary'
+properties:
+  number:
+    $ref: '../../../openapi.yaml#/components/schemas/Number'
+  urgentTransferAllowed:
+    $ref: '../../../openapi.yaml#/components/schemas/UrgentTransfer'
+  cardNumber:
+    $ref: '../../../openapi.yaml#/components/schemas/CardNumber'
+  accountInterestRate:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountInterestRate'
+  accountHolderName:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderName'
+  accountHolderNames:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderNames'
+  debitCardsItems:
+    type: array
+    uniqueItems: true
+    items:
+      $ref: '../../../openapi.yaml#/components/schemas/DebitCardsItem'
+  startDate:
+    $ref: '../../../openapi.yaml#/components/schemas/StartDate'
+  validThru:
+    $ref: '../../../openapi.yaml#/components/schemas/ValidThru'
+required:
+  - debitCardsItems

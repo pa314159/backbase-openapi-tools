@@ -1,0 +1,10 @@
+Three:
+  type: object
+  properties:
+    id:
+      type: integer
+    propFour:
+      type: object
+      properties:
+        id:
+          type: integer

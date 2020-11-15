@@ -1,0 +1,53 @@
+allOf:
+  - $ref: '../../../openapi.yaml#/components/schemas/BaseProductSummary'
+properties:
+  bookedBalance:
+    $ref: '../../../openapi.yaml#/components/schemas/CurrencyValue'
+  principalAmount:
+    $ref: '../../../openapi.yaml#/components/schemas/PrincipalAmount'
+  accruedInterest:
+    $ref: '../../../openapi.yaml#/components/schemas/AccruedInterest'
+  IBAN:
+    $ref: '../../../openapi.yaml#/components/schemas/IBAN'
+  BBAN:
+    $ref: '../../../openapi.yaml#/components/schemas/BBAN'
+  currency:
+    $ref: '../../../openapi.yaml#/components/schemas/CurrencyCode'
+  urgentTransferAllowed:
+    $ref: '../../../openapi.yaml#/components/schemas/UrgentTransfer'
+  productNumber:
+    $ref: '../../../openapi.yaml#/components/schemas/ProductNumber'
+  accountInterestRate:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountInterestRate'
+  startDate:
+    $ref: '../../../openapi.yaml#/components/schemas/StartDate'
+  termUnit:
+    $ref: '../../../openapi.yaml#/components/schemas/TermUnit'
+  termNumber:
+    $ref: '../../../openapi.yaml#/components/schemas/TermNumber'
+  maturityDate:
+    $ref: '../../../openapi.yaml#/components/schemas/MaturityDate'
+  maturityAmount:
+    $ref: '../../../openapi.yaml#/components/schemas/MaturityAmount'
+  autoRenewalIndicator:
+    $ref: '../../../openapi.yaml#/components/schemas/AutoRenewalIndicator'
+  interestPaymentFrequencyUnit:
+    $ref: '../../../openapi.yaml#/components/schemas/InterestPaymentFrequencyUnit'
+  interestPaymentFrequencyNumber:
+    $ref: '../../../openapi.yaml#/components/schemas/InterestPaymentFrequencyNumber'
+  interestSettlementAccount:
+    $ref: '../../../openapi.yaml#/components/schemas/InterestSettlementAccount'
+  valueDateBalance:
+    $ref: '../../../openapi.yaml#/components/schemas/ValueDateBalance'
+  accountHolderName:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderName'
+  accountHolderNames:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderNames'
+  outstandingPrincipalAmount:
+    $ref: '../../../openapi.yaml#/components/schemas/OutstandingPrincipalAmount'
+  creditAccount:
+    $ref: '../../../openapi.yaml#/components/schemas/CreditAccount'
+  debitAccount:
+    $ref: '../../../openapi.yaml#/components/schemas/DebitAccount'
+  minimumRequiredBalance:
+    $ref: '../../../openapi.yaml#/components/schemas/MinimumRequiredBalance'

@@ -1,0 +1,109 @@
+type: object
+properties:
+  aggregatedBalance:
+    $ref: '../../openapi.yaml#/components/schemas/AggregatedBalance'
+  currentAccounts:
+    type: object
+    properties:
+      name:
+        $ref: '../../openapi.yaml#/components/schemas/ProductKindName'
+      products:
+        type: array
+        items:
+          $ref: '../../openapi.yaml#/components/schemas/CurrentAccount'
+      aggregatedBalance:
+        $ref: '../../openapi.yaml#/components/schemas/AggregatedBalance'
+    required:
+      - products
+  savingsAccounts:
+    type: object
+    properties:
+      name:
+        $ref: '../../openapi.yaml#/components/schemas/ProductKindName'
+      products:
+        type: array
+        items:
+          $ref: '../../openapi.yaml#/components/schemas/SavingsAccount'
+      aggregatedBalance:
+        $ref: '../../openapi.yaml#/components/schemas/AggregatedBalance'
+    required:
+      - products
+  termDeposits:
+    type: object
+    properties:
+      name:
+        $ref: '../../openapi.yaml#/components/schemas/ProductKindName'
+      products:
+        type: array
+        items:
+          $ref: '../../openapi.yaml#/components/schemas/TermDeposit'
+      aggregatedBalance:
+        $ref: '../../openapi.yaml#/components/schemas/AggregatedBalance'
+    required:
+      - products
+  loans:
+    type: object
+    properties:
+      name:
+        $ref: '../../openapi.yaml#/components/schemas/ProductKindName'
+      products:
+        type: array
+        items:
+          $ref: '../../openapi.yaml#/components/schemas/Loan'
+      aggregatedBalance:
+        $ref: '../../openapi.yaml#/components/schemas/AggregatedBalance'
+    required:
+      - products
+  creditCards:
+    type: object
+    properties:
+      name:
+        $ref: '../../openapi.yaml#/components/schemas/ProductKindName'
+      products:
+        type: array
+        items:
+          $ref: '../../openapi.yaml#/components/schemas/CreditCard'
+      aggregatedBalance:
+        $ref: '../../openapi.yaml#/components/schemas/AggregatedBalance'
+    required:
+      - products
+  debitCards:
+    type: object
+    properties:
+      name:
+        $ref: '../../openapi.yaml#/components/schemas/ProductKindName'
+      products:
+        type: array
+        items:
+          $ref: '../../openapi.yaml#/components/schemas/DebitCard'
+      aggregatedBalance:
+        $ref: '../../openapi.yaml#/components/schemas/AggregatedBalance'
+    required:
+      - products
+  investmentAccounts:
+    type: object
+    properties:
+      name:
+        $ref: '../../openapi.yaml#/components/schemas/ProductKindName'
+      products:
+        type: array
+        items:
+          $ref: '../../openapi.yaml#/components/schemas/InvestmentAccount'
+      aggregatedBalance:
+        $ref: '../../openapi.yaml#/components/schemas/AggregatedBalance'
+    required:
+      - products
+  customProductKinds:
+    type: array
+    items:
+      $ref: '../../openapi.yaml#/components/schemas/CustomProductKind'
+  additions:
+    description: Additional properties
+    type: object
+    additionalProperties:
+      type: string
+required:
+  - additions
+  - customProductKinds
+example:
+  $ref: '../../openapi.yaml#/components/examples/ProductSummaryGet'

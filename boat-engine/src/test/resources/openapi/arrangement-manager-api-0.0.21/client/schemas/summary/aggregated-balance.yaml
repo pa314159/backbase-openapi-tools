@@ -1,0 +1,8 @@
+type: object
+description: Defines a balance for groups of products. This field is not implemented
+  OOTB, and it should be implemented by project/customer
+properties:
+  currency:
+    $ref: '../../openapi.yaml#/components/schemas/CurrencyCode'
+  value:
+    $ref: '../../openapi.yaml#/components/schemas/CurrencyValue'

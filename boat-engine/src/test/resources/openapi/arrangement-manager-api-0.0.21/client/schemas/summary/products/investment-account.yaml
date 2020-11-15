@@ -1,0 +1,15 @@
+allOf:
+  - $ref: '../../../openapi.yaml#/components/schemas/BaseProductSummary'
+properties:
+  currentInvestmentValue:
+    $ref: '../../../openapi.yaml#/components/schemas/CurrencyValue'
+  currency:
+    $ref: '../../../openapi.yaml#/components/schemas/CurrencyCode'
+  urgentTransferAllowed:
+    $ref: '../../../openapi.yaml#/components/schemas/UrgentTransfer'
+  productNumber:
+    $ref: '../../../openapi.yaml#/components/schemas/ProductNumber'
+  IBAN:
+    $ref: '../../../openapi.yaml#/components/schemas/IBAN'
+  BBAN:
+    $ref: '../../../openapi.yaml#/components/schemas/BBAN'

@@ -1,0 +1,21 @@
+type: object
+properties:
+  name:
+    $ref: '../../../openapi.yaml#/components/schemas/ProductKindName'
+  id:
+    type: integer
+    format: int32
+  products:
+    type: array
+    items:
+      $ref: '../../../openapi.yaml#/components/schemas/GeneralAccount'
+  aggregatedBalance:
+    $ref: '../../../openapi.yaml#/components/schemas/AggregatedBalance'
+  additions:
+    description: Additional properties
+    type: object
+    additionalProperties:
+      type: string
+required:
+  - additions
+  - products

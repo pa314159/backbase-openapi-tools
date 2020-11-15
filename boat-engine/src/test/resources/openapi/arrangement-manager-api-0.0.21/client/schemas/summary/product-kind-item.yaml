@@ -1,0 +1,29 @@
+type: object
+properties:
+  id:
+    type: integer
+    format: int32
+  externalKindId:
+    maxLength: 50
+    minLength: 1
+    type: string
+  kindName:
+    maxLength: 50
+    minLength: 1
+    type: string
+  kindUri:
+    maxLength: 50
+    minLength: 1
+    pattern: '[a-z\-0-9]*?'
+    type: string
+  additions:
+    description: Additional properties
+    type: object
+    additionalProperties:
+      type: string
+required:
+  - externalKindId
+  - id
+  - kindName
+  - kindUri
+  - additions

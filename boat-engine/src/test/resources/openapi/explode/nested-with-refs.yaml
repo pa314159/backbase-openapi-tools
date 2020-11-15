@@ -1,0 +1,41 @@
+openapi: '3.0.3'
+
+info:
+  title: title
+  version: version
+
+paths: {}
+
+components:
+  schemas:
+    One:
+      type: object
+      properties:
+        id:
+          type: integer
+        propTwo:
+          type: object
+          properties:
+            id:
+              type: integer
+            propThree:
+              $ref: '#/components/schemas/Three'
+            array:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+            enums:
+              type: array
+              items:
+                type: string
+                enum: [a, b, c]
+        propThree:
+          $ref: '#/components/schemas/Three'
+    Three:
+      type: object
+      properties:
+        id:
+          type: integer

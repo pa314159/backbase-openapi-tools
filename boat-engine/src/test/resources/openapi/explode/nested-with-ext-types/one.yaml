@@ -1,0 +1,11 @@
+type: object
+properties:
+  id:
+    type: integer
+  propTwo:
+    type: object
+    properties:
+      id:
+        type: integer
+      propThree:
+        $ref: 'components.yaml#/Three'

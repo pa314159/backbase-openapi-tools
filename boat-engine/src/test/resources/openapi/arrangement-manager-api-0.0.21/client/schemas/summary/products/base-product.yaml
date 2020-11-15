@@ -1,0 +1,41 @@
+type: object
+properties:
+  id:
+    $ref: '../../../openapi.yaml#/components/schemas/ProductId'
+  name:
+    $ref: '../../../openapi.yaml#/components/schemas/ProductName'
+  externalTransferAllowed:
+    $ref: '../../../openapi.yaml#/components/schemas/ExternalTransfer'
+  crossCurrencyAllowed:
+    $ref: '../../../openapi.yaml#/components/schemas/CrossCurrency'
+  productKindName:
+    $ref: '../../../openapi.yaml#/components/schemas/ProductKindName'
+  productTypeName:
+    $ref: '../../../openapi.yaml#/components/schemas/ProductTypeName'
+  bankAlias:
+    $ref: '../../../openapi.yaml#/components/schemas/BankAlias'
+  sourceId:
+    $ref: '../../../openapi.yaml#/components/schemas/SourceId'
+  visible:
+    $ref: '../../../openapi.yaml#/components/schemas/ProductVisible'
+  accountOpeningDate:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountOpeningDate'
+  lastUpdateDate:
+    $ref: '../../../openapi.yaml#/components/schemas/LastUpdateDate'
+  userPreferences:
+    $ref: '../../../openapi.yaml#/components/schemas/PresentationUserPreferences'
+  state:
+    $ref: '../../../openapi.yaml#/components/schemas/StateItemQ'
+  parentId:
+    $ref: '../../../openapi.yaml#/components/schemas/ParentId'
+  subArrangements:
+    type: array
+    items:
+      $ref: '../../../openapi.yaml#/components/schemas/BaseProductSummary'
+  additions:
+    description: Additional properties
+    type: object
+    additionalProperties:
+      type: string
+required:
+  - additions

@@ -1,0 +1,72 @@
+allOf:
+  - $ref: '../../../openapi.yaml#/components/schemas/BaseProductSummary'
+properties:
+  bookedBalance:
+    $ref: '../../../openapi.yaml#/components/schemas/CurrencyValue'
+  availableBalance:
+    $ref: '../../../openapi.yaml#/components/schemas/CurrencyValue'
+  accruedInterest:
+    $ref: '../../../openapi.yaml#/components/schemas/AccruedInterest'
+  IBAN:
+    $ref: '../../../openapi.yaml#/components/schemas/IBAN'
+  BBAN:
+    $ref: '../../../openapi.yaml#/components/schemas/BBAN'
+  currency:
+    $ref: '../../../openapi.yaml#/components/schemas/CurrencyCode'
+  urgentTransferAllowed:
+    $ref: '../../../openapi.yaml#/components/schemas/UrgentTransfer'
+  BIC:
+    $ref: '../../../openapi.yaml#/components/schemas/BIC'
+  bankBranchCode:
+    $ref: '../../../openapi.yaml#/components/schemas/BankBranchCode'
+  accountInterestRate:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountInterestRate'
+  minimumRequiredBalance:
+    $ref: '../../../openapi.yaml#/components/schemas/MinimumRequiredBalance'
+  startDate:
+    $ref: '../../../openapi.yaml#/components/schemas/StartDate'
+  termUnit:
+    $ref: '../../../openapi.yaml#/components/schemas/TermUnit'
+  termNumber:
+    $ref: '../../../openapi.yaml#/components/schemas/TermNumber'
+  maturityDate:
+    $ref: '../../../openapi.yaml#/components/schemas/MaturityDate'
+  maturityAmount:
+    $ref: '../../../openapi.yaml#/components/schemas/MaturityAmount'
+  autoRenewalIndicator:
+    $ref: '../../../openapi.yaml#/components/schemas/AutoRenewalIndicator'
+  interestPaymentFrequencyUnit:
+    $ref: '../../../openapi.yaml#/components/schemas/InterestPaymentFrequencyUnit'
+  interestPaymentFrequencyNumber:
+    $ref: '../../../openapi.yaml#/components/schemas/InterestPaymentFrequencyNumber'
+  principalAmount:
+    $ref: '../../../openapi.yaml#/components/schemas/PrincipalAmount'
+  interestSettlementAccount:
+    $ref: '../../../openapi.yaml#/components/schemas/InterestSettlementAccount'
+  accountHolderName:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderName'
+  accountHolderNames:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderNames'
+  valueDateBalance:
+    $ref: '../../../openapi.yaml#/components/schemas/ValueDateBalance'
+  accountHolderAddressLine1:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderAddressLine1'
+  accountHolderAddressLine2:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderAddressLine2'
+  accountHolderStreetName:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderStreetName'
+  town:
+    $ref: '../../../openapi.yaml#/components/schemas/Town'
+  postCode:
+    $ref: '../../../openapi.yaml#/components/schemas/PostCode'
+  countrySubDivision:
+    $ref: '../../../openapi.yaml#/components/schemas/CountrySubDivision'
+  accountHolderCountry:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderCountry'
+  creditAccount:
+    $ref: '../../../openapi.yaml#/components/schemas/CreditAccount'
+  debitAccount:
+    $ref: '../../../openapi.yaml#/components/schemas/DebitAccount'
+
+
+

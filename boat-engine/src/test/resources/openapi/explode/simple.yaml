@@ -1,0 +1,65 @@
+openapi: '3.0.3'
+
+info:
+  title: title
+  version: version
+
+paths:
+  /:
+    post:
+      operationId: op-id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                value:
+                  $ref: '#/components/schemas/One'
+                complex:
+                  properties:
+                    x:
+                      type: number
+                    i:
+                      type: number
+
+      responses:
+        200:
+          description: description
+          content:
+            application/json:
+              schema:
+                title: PostOpIdResult
+                properties:
+                  id:
+                    type: integer
+                  value:
+                    $ref: '#/components/schemas/Two'
+
+components:
+  schemas:
+    One:
+      type: object
+      properties:
+        id:
+          type: integer
+        propTwo:
+          $ref: '#/components/schemas/Two'
+        propThree:
+          $ref: '#/components/schemas/Three'
+    Two:
+      type: object
+      properties:
+        id:
+          type: integer
+        propThree:
+          $ref: '#/components/schemas/Three'
+    Three:
+      type: object
+      properties:
+        value:
+          type: integer
+
+    Values:
+      type: string
+      enum: [a, b, c]
+

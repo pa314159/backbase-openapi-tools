@@ -1,0 +1,43 @@
+allOf:
+  - $ref: '../../../openapi.yaml#/components/schemas/BaseProductSummary'
+properties:
+  bookedBalance:
+    $ref: '../../../openapi.yaml#/components/schemas/CurrencyValue'
+  availableBalance:
+    $ref: '../../../openapi.yaml#/components/schemas/CurrencyValue'
+  creditLimit:
+    $ref: '../../../openapi.yaml#/components/schemas/CurrencyValue'
+  number:
+    $ref: '../../../openapi.yaml#/components/schemas/Number'
+  currency:
+    $ref: '../../../openapi.yaml#/components/schemas/CurrencyCode'
+  urgentTransferAllowed:
+    $ref: '../../../openapi.yaml#/components/schemas/UrgentTransfer'
+  cardNumber:
+    $ref: '../../../openapi.yaml#/components/schemas/CardNumber'
+  creditCardAccountNumber:
+    $ref: '../../../openapi.yaml#/components/schemas/CreditCardAccountNumber'
+  validThru:
+    $ref: '../../../openapi.yaml#/components/schemas/ValidThru'
+  applicableInterestRate:
+    $ref: '../../../openapi.yaml#/components/schemas/ApplicableInterestRate'
+  remainingCredit:
+    $ref: '../../../openapi.yaml#/components/schemas/RemainingCredit'
+  outstandingPayment:
+    $ref: '../../../openapi.yaml#/components/schemas/OutstandingPayment'
+  minimumPayment:
+    $ref: '../../../openapi.yaml#/components/schemas/MinimumPayment'
+  minimumPaymentDueDate:
+    $ref: '../../../openapi.yaml#/components/schemas/MinimumPaymentDueDate'
+  accountInterestRate:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountInterestRate'
+  accountHolderName:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderName'
+  accountHolderNames:
+    $ref: '../../../openapi.yaml#/components/schemas/AccountHolderNames'
+  creditLimitUsage:
+    $ref: '../../../openapi.yaml#/components/schemas/CreditLimitUsage'
+  creditLimitInterestRate:
+    $ref: '../../../openapi.yaml#/components/schemas/CreditLimitInterestRate'
+  accruedInterest:
+    $ref: '../../../openapi.yaml#/components/schemas/AccruedInterest'

@@ -1,0 +1,5 @@
+type: array
+example:
+  $ref: '../../openapi.yaml#/components/examples/ProductSummaryFlatStructureGet'
+items:
+  $ref: '../../openapi.yaml#/components/schemas/ProductSummaryItem'

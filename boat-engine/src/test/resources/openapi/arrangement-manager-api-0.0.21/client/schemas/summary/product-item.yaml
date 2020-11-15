@@ -1,0 +1,25 @@
+type: object
+properties:
+  externalId:
+    maxLength: 50
+    type: string
+    description: 'A unique identifier for the product that the arrangement applies
+          to '
+  externalTypeId:
+    maxLength: 50
+    type: string
+    description: The ID that is used by the Bank to identify the specific Product
+      type - External reference to the product Type.
+  typeName:
+    maxLength: 50
+    type: string
+    description: The label/name that is used to label a specific product type.
+  productKind:
+    $ref: '../../openapi.yaml#/components/schemas/PresentationProductKindItem'
+  additions:
+    description: Additional properties
+    type: object
+    additionalProperties:
+      type: string
+required:
+  - additions
