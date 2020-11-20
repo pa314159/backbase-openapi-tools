@@ -77,7 +77,7 @@
         <module>boat-engine</module>
         <module>boat-scaffold</module>
         <module>boat-terminal</module>
-        <module>boat-quay</module>
+<!--        <module>boat-quay</module>-->
         <module>boat-maven-plugin</module>
         <!-- Code Coverage Project -->
         <module>tests</module>
