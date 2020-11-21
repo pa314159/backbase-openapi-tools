@@ -33,9 +33,14 @@ components:
                 type: string
                 enum: [a, b, c]
         propThree:
-          $ref: '#/components/schemas/Three'
+          type: object
+          properties:
+            id:
+              type: string
+              enum: [a, b, c]
     Three:
       type: object
       properties:
         id:
           type: string
+          enum: [a, b, c]

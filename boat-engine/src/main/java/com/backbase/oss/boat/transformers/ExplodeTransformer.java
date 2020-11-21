@@ -86,7 +86,8 @@ public class ExplodeTransformer implements Transformer {
 
     private final Path schemasPath;
 
-    private final PropUtils pu = new PropUtils().lenient();
+    private final SchemaBasket basket = new SchemaBasket();
+    private final PropUtils utils = new PropUtils().lenient();
 
     @Getter
     private OpenAPI openAPI;
@@ -133,10 +134,10 @@ public class ExplodeTransformer implements Transformer {
 
         transformSchemas(this.targetName, schemas);
 
-        this.pu.ifPresent(openAPI, "paths", (io.swagger.v3.oas.models.Paths paths) -> {
+        this.utils.ifPresent(openAPI, "paths", (io.swagger.v3.oas.models.Paths paths) -> {
             paths.forEach((path, item) -> {
                 for (final HttpMethod method : HttpMethod.values()) {
-                    this.pu.ifPresent(item, method.name().toLowerCase(),
+                    this.utils.ifPresent(item, method.name().toLowerCase(),
                         (Operation op) -> transformOperation(method, path, op));
                 }
             });
@@ -170,7 +171,7 @@ public class ExplodeTransformer implements Transformer {
                 transformSchema(source.resolveSibling(schema.get$ref()), id);
             }
         } else if (isBlank(schema.get$ref())) {
-            this.pu
+            this.utils
                 .ifPresent(schema, "properties", (Map<String, Schema> scms) -> {
                     transformSchemas(extract(source, id, schema, action), scms);
                 })
@@ -203,7 +204,7 @@ public class ExplodeTransformer implements Transformer {
     }
 
     private void transformOperation(HttpMethod method, String uri, Operation op) {
-        this.pu
+        this.utils
             .ifPresent(op, "requestBody.content", (Content content) -> {
                 transformContent(method, uri, op, content, "request");
             })
@@ -227,7 +228,7 @@ public class ExplodeTransformer implements Transformer {
 
     private void transformContent(HttpMethod method, String uri, Operation op, Content content, String... suffixes) {
         content.forEach((name, media) -> {
-            this.pu.ifPresent(media, "schema", (Schema schema) -> {
+            this.utils.ifPresent(media, "schema", (Schema schema) -> {
                 final String id = buildTypeName(method, uri, op, suffixes);
 
                 transformSchema(this.targetName, id, schema, media::setSchema);
@@ -236,28 +237,42 @@ public class ExplodeTransformer implements Transformer {
     }
 
     private Path extract(Path source, String id, Schema schema, Consumer<Schema> action) {
-        final String alias = aliasOf(source, id, schema);
-        final Path file = fileOf(source, id, schema);
+        final Schema scm = this.basket.search(schema);
 
-        log.debug("source = {}, alias = {}, file = {}", source, alias, file);
+        if (scm != schema) {
+            final String alias = scm.getTitle();
 
-        if (isBlank(schema.getTitle())) {
-            schema.setTitle(alias);
+            action.accept(new Schema<>().$ref("#/components/schemas/" + alias));
+
+            return Paths.get(this.aliases.get(alias).get$ref());
+        } else {
+            final String alias = aliasOf(source, id, schema);
+            final Path file = fileOf(source, id, schema);
+
+            log.debug("source = {}, alias = {}, file = {}", source, alias, file);
+
+            if (isBlank(schema.getTitle())) {
+                schema.setTitle(alias);
+            }
+
+            this.aliases.put(alias, new Schema<>().$ref(file.toString()));
+            this.files.put(file, schema);
+
+            action.accept(new Schema<>().$ref("#/components/schemas/" + alias));
+
+            return file;
         }
+    }
 
-        this.aliases.put(alias, new Schema<>().$ref(file.toString()));
-        this.files.put(file, schema);
-
-        action.accept(new Schema<>().$ref("#/components/schemas/" + alias));
-
-        return file;
+    private Path fileOf(String alias) {
+        return Paths.get(ofNullable(this.aliases.get(alias)).map(Schema::get$ref).get());
     }
 
     private void updateRefs(Path source, Schema schema) {
         if (isLocalRef(schema.get$ref())) {
             updateRef(source, schema);
         } else if (isBlank(schema.get$ref())) {
-            this.pu
+            this.utils
                 .ifPresent(schema, "properties", (Map<String, Schema> m) -> updateRefs(source, m.values()))
                 .ifPresent(schema, "items", (Schema scm) -> updateRefs(source, scm))
                 .ifPresent(schema, "allOf", (Collection all) -> updateRefs(source, all))
@@ -311,8 +326,8 @@ public class ExplodeTransformer implements Transformer {
     }
 
     private String aliasOf(Path source, String name, Schema schema) {
-        return ofNullable(schema.getTitle())
-            .orElseGet(() -> aliasOf(source) + toCamel(toHyphen(name)));
+        return rename(ofNullable(schema.getTitle())
+            .orElseGet(() -> aliasOf(source) + toCamel(toHyphen(name))));
     }
 
     private Path fileOf(Path source, String name, Schema schema) {
@@ -329,17 +344,22 @@ public class ExplodeTransformer implements Transformer {
             file = Paths.get(toHyphen(thisType) + ".yaml");
         }
 
+        file = Paths.get(rename(file.toString()));
+
+        return this.schemasPath.resolve(file).normalize();
+    }
+
+    private String rename(String text) {
         if (this.rename.size() > 0) {
-            file = this.rename.entrySet().stream().reduce(file, (p, e) -> {
+            text = this.rename.entrySet().stream().reduce(text, (p, e) -> {
                 final Matcher m = e.getKey().matcher(p.toString());
 
                 return m.matches()
-                    ? Paths.get(m.replaceAll(e.getValue()))
+                    ? m.replaceAll(e.getValue())
                     : p;
             }, (t, u) -> u);
         }
-
-        return this.schemasPath.resolve(file).normalize();
+        return text;
     }
 
     private String buildTypeName(HttpMethod method, String uri, Operation op, String... suffixes) {

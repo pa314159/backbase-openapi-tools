@@ -1,20 +1,22 @@
 package com.backbase.oss.boat.transformers;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static java.lang.String.format;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+
 import com.backbase.oss.boat.loader.OpenAPILoader;
 import com.backbase.oss.boat.loader.OpenAPILoaderException;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -70,8 +72,13 @@ public class ExplodeTransformerTest {
 
     @Test
     public void simple() throws OpenAPILoaderException {
-        final ExplodeTransformer trn =
-            transform("simple", singletonMap(Pattern.compile("post-op-id-.+"), "bodies/$0"));
+        final Map<Pattern, String> rename = new HashMap<>();
+
+        rename.put(Pattern.compile("post-op-id-.+"), "bodies/$0");
+        rename.put(Pattern.compile("(.+/)?complex.yaml"), "complex-type.yaml");
+        rename.put(Pattern.compile(".+Complex"), "ComplexType");
+
+        final ExplodeTransformer trn = transform("simple", rename);
         final OpenAPI openAPI = trn.getOpenAPI();
 
         final Map<String, Schema> schemas = openAPI.getComponents().getSchemas();
@@ -85,7 +92,7 @@ public class ExplodeTransformerTest {
             .containsKeys("Three")
             .containsKeys("Values")
             .containsKeys("PostOpIdRequest")
-            .containsKeys("PostOpIdRequestComplex")
+            .containsKeys("ComplexType")
             .containsKeys("PostOpIdResult");
 
         assertThat(files)
@@ -93,7 +100,7 @@ public class ExplodeTransformerTest {
             .containsKey(this.schemasPath.resolve("two.yaml"))
             .containsKey(this.schemasPath.resolve("three.yaml"))
             .containsKey(this.schemasPath.resolve("bodies/post-op-id-request.yaml"))
-            .containsKey(this.schemasPath.resolve("bodies/post-op-id-request/complex.yaml"))
+            .containsKey(this.schemasPath.resolve("complex-type.yaml"))
             .containsKey(this.schemasPath.resolve("bodies/post-op-id-result.yaml"));
 
         schemas.forEach((name, s) -> assertThat(isNotBlank(s.get$ref()), is(true)));
@@ -103,6 +110,34 @@ public class ExplodeTransformerTest {
     @Test
     public void nestedWithRefs() throws OpenAPILoaderException {
         final ExplodeTransformer trn = transform("nested-with-refs");
+        final OpenAPI openAPI = trn.getOpenAPI();
+
+        final Map<String, Schema> schemas = openAPI.getComponents().getSchemas();
+        final Map<Path, Schema> files = trn.getFiles();
+
+        assertThat(files.values(), hasSize(5));
+
+        assertThat(schemas)
+            .containsKeys("One")
+            .containsKeys("OnePropTwo")
+            .containsKeys("OnePropTwoArrayItems")
+            .containsKeys("OnePropTwoEnumsItems")
+            .containsKeys("Three");
+
+        assertThat(files)
+            .containsKey(this.schemasPath.resolve("one.yaml"))
+            .containsKey(this.schemasPath.resolve("one/prop-two.yaml"))
+            .containsKey(this.schemasPath.resolve("one/prop-two/array-items.yaml"))
+            .containsKey(this.schemasPath.resolve("one/prop-two/enums-items.yaml"))
+            .containsKey(this.schemasPath.resolve("three.yaml"));
+
+        schemas.forEach((name, s) -> assertThat(isNotBlank(s.get$ref()), is(true)));
+        files.forEach((file, s) -> assertThat(isBlank(s.get$ref()), is(true)));
+    }
+
+    @Test
+    public void nestedWithDups() throws OpenAPILoaderException {
+        final ExplodeTransformer trn = transform("nested-with-dups");
         final OpenAPI openAPI = trn.getOpenAPI();
 
         final Map<String, Schema> schemas = openAPI.getComponents().getSchemas();
