@@ -28,14 +28,17 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 {{>generatedAnnotation}}
-@Component("{{package}}.{{classname}}")
+{{^backbaseServiceId}}@Component("{{package}}.{{classname}}")
+{{/backbaseServiceId}}
 {{#operations}}
 public class {{classname}} {
-    private ApiClient apiClient;
+    private {{#backbaseServiceId}}final {{/backbaseServiceId}}ApiClient apiClient;
 
+{{^backbaseServiceId}}
     public {{classname}}() {
         this(new ApiClient());
     }
+{{/backbaseServiceId}}
 
     @Autowired
     public {{classname}}(ApiClient apiClient) {
@@ -46,9 +49,11 @@ public class {{classname}} {
         return apiClient;
     }
 
+{{^backbaseServiceId}}
     public void setApiClient(ApiClient apiClient) {
         this.apiClient = apiClient;
     }
+{{/backbaseServiceId}}
 
     {{#operation}}
     /**

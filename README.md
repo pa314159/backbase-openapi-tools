@@ -29,9 +29,11 @@ BOAT is still under development and subject to change.
 * *Java Generator*
   * Added `useWithModifiers` option to use the `with` prefix for POJO modifiers (defaults to `false`).
   * Added `useClassLevelBeanValidation` option (defaults to `false`).
+  * Added `useJacksonConversion` to use Jackson for parameters conversion instead of `toString` (defaults to `false`).
+  * Added `serviceId` to use generate API bean factories (defaults to `""`, so no factory is generated).
 
 ## 0.10.0
-* Maven Plugin 
+* *Maven Plugin*
    * `boat:lint` mojo will generate an HTML report based on API Guidelines 
    * `boat:docs` mojo will generate HTML documentation from OpenAPI showing multiple examples and requests as well as Custom Annotations
 * General Bug Fixes

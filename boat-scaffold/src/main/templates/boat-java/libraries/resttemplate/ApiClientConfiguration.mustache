@@ -1,0 +1,61 @@
+package {{invokerPackage}};
+
+import static com.backbase.buildingblocks.backend.communication.http.HttpCommunicationConfiguration.INTERCEPTORS_ENABLED_HEADER;
+
+import java.util.function.Function;
+import javax.validation.constraints.Pattern;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.validation.annotation.Validated;
+
+{{#apiInfo}}
+{{#apis}}
+import {{apiPackage}}.{{classname}};
+{{/apis}}
+{{/apiInfo}}
+
+@Configuration("{{invokerPackage}}.ApiClientConfiguration")
+@Validated
+public class ApiClientConfiguration {
+
+    @Value("${backbase.communication.http.default-scheme:http}")
+    @Pattern(regexp = "https?")
+    private String scheme;
+
+    @Value("${backbase.communication.http.client.user-agent:{{httpUserAgent}}}")
+    private String userAgent;
+
+    @Value("${backbase.communication.http.client.logging:false}")
+    private boolean logging;
+
+{{#apiInfo}}
+{{#apis}}
+
+    @Bean
+    public {{classname}} create{{classname}}(ApiClient apiClient) {
+        return createClient(apiClient, {{classname}}::new);
+    }
+{{/apis}}
+{{/apiInfo}}
+
+    public void setServiceId(String serviceId) {
+        this.serviceId = serviceId;
+    }
+
+    public void setServiceUri(String serviceUri) {
+        this.serviceUri = serviceUri;
+    }
+
+    private <T> T createClient(ApiClient apiClient, Function<ApiClient, T> bld) {
+        final T client = bld.apply(apiClient);
+
+        apiClient.setBasePath(this.scheme + "://{{backbaseServiceId}}" );
+        apiClient.addDefaultHeader(INTERCEPTORS_ENABLED_HEADER, "true");
+        apiClient.setUserAgent(userAgent);
+        apiClient.setDebugging(logging, bld.getClass());
+
+        return client;
+    }
+}
