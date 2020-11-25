@@ -19,13 +19,6 @@ public class BoatJavaCodeGen extends JavaClientCodegen {
     protected boolean useClassLevelBeanValidation;
 
     /**
-     * Enable OpenAPI Jackson Nullable library
-     */
-    @Setter
-    @Getter
-    protected boolean openApiNullable = true;
-
-    /**
      * Whether to use {@code with} prefix for pojos modifiers.
      */
     @Setter

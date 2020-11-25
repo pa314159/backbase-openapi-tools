@@ -24,12 +24,14 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardCopyOption;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -49,6 +51,8 @@ import org.sonatype.plexus.build.incremental.BuildContext;
 import org.sonatype.plexus.build.incremental.DefaultBuildContext;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyAdditionalPropertiesKvp;
 import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyAdditionalPropertiesKvpList;
@@ -356,6 +360,12 @@ public class GenerateMojo extends AbstractMojo {
     protected String modelsToGenerate = "";
 
     /**
+     * A comma separated list of apis to generate. All apis is the default.
+     */
+    @Parameter(name = "apisToGenerate", property = "openapi.generator.maven.plugin.apisToGenerate", required = false)
+    protected List<String> apisToGenerate;
+
+    /**
      * Generate the supporting files.
      */
     @Parameter(name = "generateSupportingFiles", property = "openapi.generator.maven.plugin.generateSupportingFiles", required = false)
@@ -658,7 +668,12 @@ public class GenerateMojo extends AbstractMojo {
 
             // Set generation options
             if (null != generateApis && generateApis) {
-                GlobalSettings.setProperty(CodegenConstants.APIS, "");
+                String apis = ofNullable(apisToGenerate)
+                    .map(Collection::stream)
+                    .orElse(Stream.empty())
+                    .collect(joining(","));
+
+                GlobalSettings.setProperty(CodegenConstants.APIS, apis);
             } else {
                 GlobalSettings.clearProperty(CodegenConstants.APIS);
             }
