@@ -1,5 +1,24 @@
 package com.backbase.oss.boat;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyAdditionalPropertiesKvp;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyAdditionalPropertiesKvpList;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyImportMappingsKvp;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyImportMappingsKvpList;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyInstantiationTypesKvp;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyInstantiationTypesKvpList;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyLanguageSpecificPrimitivesCsv;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyLanguageSpecificPrimitivesCsvList;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyReservedWordsMappingsKvp;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyReservedWordsMappingsKvpList;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyServerVariablesKvp;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyServerVariablesKvpList;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyTypeMappingsKvp;
+import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyTypeMappingsKvpList;
+
 import com.backbase.oss.boat.transformers.Bundler;
 import com.backbase.oss.boat.transformers.DereferenceComponentsPropertiesTransformer;
 import com.backbase.oss.boat.transformers.UnAliasTransformer;
@@ -49,25 +68,6 @@ import org.openapitools.codegen.config.CodegenConfigurator;
 import org.openapitools.codegen.config.GlobalSettings;
 import org.sonatype.plexus.build.incremental.BuildContext;
 import org.sonatype.plexus.build.incremental.DefaultBuildContext;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.joining;
-import static org.apache.commons.lang3.StringUtils.isNotEmpty;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyAdditionalPropertiesKvp;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyAdditionalPropertiesKvpList;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyImportMappingsKvp;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyImportMappingsKvpList;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyInstantiationTypesKvp;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyInstantiationTypesKvpList;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyLanguageSpecificPrimitivesCsv;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyLanguageSpecificPrimitivesCsvList;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyReservedWordsMappingsKvp;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyReservedWordsMappingsKvpList;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyServerVariablesKvp;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyServerVariablesKvpList;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyTypeMappingsKvp;
-import static org.openapitools.codegen.config.CodegenConfiguratorUtils.applyTypeMappingsKvpList;
 
 /**
  * Generates client/server code from an OpenAPI json/yaml definition.
@@ -428,7 +428,7 @@ public class GenerateMojo extends AbstractMojo {
 
     /**
      * Add the output directory to the project as a test source root, so that the generated java types
-     * are compiled only for the test classpath of the project. Mutually exclusive with
+     * are compiled only for the test classpath of the project. Setting this parameter will ignore
      * {@link #addCompileSourceRoot}.
      */
     @Parameter(defaultValue = "false", property = "openapi.generator.maven.plugin.addTestCompileSourceRoot")
@@ -957,14 +957,10 @@ public class GenerateMojo extends AbstractMojo {
     }
 
     private void addCompileSourceRootIfConfigured() throws MojoExecutionException {
-        if (addCompileSourceRoot) {
-            if (addTestCompileSourceRoot) {
-                throw new MojoExecutionException(
-                    "Either 'addCompileSourceRoot' or 'addTestCompileSourceRoot' may be active, not both.");
-            }
-            project.addCompileSourceRoot(getCompileSourceRoot());
-        } else if (addTestCompileSourceRoot) {
+        if (addTestCompileSourceRoot) {
             project.addTestCompileSourceRoot(getCompileSourceRoot());
+        } else if (addCompileSourceRoot) {
+            project.addCompileSourceRoot(getCompileSourceRoot());
         }
 
         // Reset all environment variables to their original value. This prevents unexpected
