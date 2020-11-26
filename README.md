@@ -26,8 +26,9 @@ BOAT is still under development and subject to change.
    * Added `includes` mojo parameter to `boat:bundle` as a glob pattern selecting the specification files (defaults to `*.yaml`).
    * Added `apisToGenerate` mojo parameter to `boat:generate`
 
-* *Java Generator*
+* *Java Generator (resttemplate only)*
   * Added `useWithModifiers` option to use the `with` prefix for POJO modifiers (defaults to `false`).
+  * added `useSetForUniqueItems` to map arrays containing `uniqueItems` to `Set` (defaults to `false`).
   * Added `useClassLevelBeanValidation` option (defaults to `false`).
   * Added `useJacksonConversion` to use Jackson for parameters conversion instead of `toString` (defaults to `false`).
   * Added `serviceId` to use generate API bean factories (defaults to `""`, so no factory is generated).

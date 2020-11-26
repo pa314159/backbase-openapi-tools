@@ -26,11 +26,21 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+{{#useBeanValidation}}
+{{#useClassLevelBeanValidation}}
+import org.springframework.validation.annotation.Validated;
+{{/useClassLevelBeanValidation}}
+{{/useBeanValidation}}
 
 {{>generatedAnnotation}}
 {{^backbaseServiceId}}@Component("{{package}}.{{classname}}")
-{{/backbaseServiceId}}
-{{#operations}}
+{{/backbaseServiceId}}{{!
+}}{{#operations}}
+{{#useBeanValidation}}{{!
+}}{{#useClassLevelBeanValidation}}{{!
+}}@Validated
+{{/useClassLevelBeanValidation}}{{!
+}}{{/useBeanValidation}}
 public class {{classname}} {
     private {{#backbaseServiceId}}final {{/backbaseServiceId}}ApiClient apiClient;
 

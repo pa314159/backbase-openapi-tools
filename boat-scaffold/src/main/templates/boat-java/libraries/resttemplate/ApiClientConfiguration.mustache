@@ -8,7 +8,7 @@ import javax.validation.constraints.Pattern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 {{#apiInfo}}
 {{#apis}}
@@ -17,7 +17,7 @@ import {{apiPackage}}.{{classname}};
 {{/apiInfo}}
 
 @Configuration("{{invokerPackage}}.ApiClientConfiguration")
-@Validated
+@ConfigurationProperties("backbase.communication.services.{{backbaseServiceId}}")
 public class ApiClientConfiguration {
 
     @Value("${backbase.communication.http.default-scheme:http}")
@@ -29,6 +29,9 @@ public class ApiClientConfiguration {
 
     @Value("${backbase.communication.http.client.logging:false}")
     private boolean logging;
+
+    private String serviceId = "{{backbaseServiceId}}";
+    private String serviceUri = "";
 
 {{#apiInfo}}
 {{#apis}}
@@ -51,7 +54,7 @@ public class ApiClientConfiguration {
     private <T> T createClient(ApiClient apiClient, Function<ApiClient, T> bld) {
         final T client = bld.apply(apiClient);
 
-        apiClient.setBasePath(this.scheme + "://{{backbaseServiceId}}" );
+        apiClient.setBasePath(String.format("%s://%s%s", scheme, serviceId, serviceUri));
         apiClient.addDefaultHeader(INTERCEPTORS_ENABLED_HEADER, "true");
         apiClient.setUserAgent(userAgent);
         apiClient.setDebugging(logging, bld.getClass());
