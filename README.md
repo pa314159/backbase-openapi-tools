@@ -25,6 +25,7 @@ BOAT is still under development and subject to change.
    * Added `removeExtensions` mojo parameter to `boat:bundle` to filter out the given vendor extensions from bundle.
    * Added `includes` mojo parameter to `boat:bundle` as a glob pattern selecting the specification files (defaults to `*.yaml`).
    * Added `apisToGenerate` mojo parameter to `boat:generate`
+   * Set the default of `httpUserAgent` to `${project.artifactId}-${project.version}`.
 
 * *Java Generator (resttemplate only)*
   * Added `useWithModifiers` option to use the `with` prefix for POJO modifiers (defaults to `false`).

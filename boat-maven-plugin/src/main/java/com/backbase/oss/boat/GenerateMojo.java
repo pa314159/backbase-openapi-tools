@@ -264,7 +264,8 @@ public class GenerateMojo extends AbstractMojo {
     /**
      * Sets custom User-Agent header value.
      */
-    @Parameter(name = "httpUserAgent", property = "openapi.generator.maven.plugin.httpUserAgent", required = false)
+    @Parameter(name = "httpUserAgent", property = "openapi.generator.maven.plugin.httpUserAgent", required = false,
+        defaultValue = "${project.artifactId}-${project.version}")
     protected String httpUserAgent;
 
     /**
