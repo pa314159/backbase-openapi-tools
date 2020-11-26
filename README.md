@@ -34,6 +34,41 @@ BOAT is still under development and subject to change.
   * Added `useJacksonConversion` to use Jackson for parameters conversion instead of `toString` (defaults to `false`).
   * Added `serviceId` to use generate API bean factories (defaults to `""`, so no factory is generated).
   * Added `configName` as the configuration name under `backbase.communication.services.` (defaults to `serviceId`).
+ 
+** *Example of Access Control client configuration*
+
+```
+    <configuration>
+        <apiPackage>com.backbase.dbs.client.access.control.api</apiPackage>
+        <modelPackage>com.backbase.dbs.client.access.control.model</modelPackage>
+        <invokerPackage>com.backbase.dbs.client.access.control.config</invokerPackage>
+
+        <apisToGenerate>
+            <-- generate these APIs only -->
+            DataGroups
+            Users
+            ServiceAgreements
+        </apisToGenerate>
+
+        <configOptions>
+            <!-- make sure our request is valid -->
+            <useBeanValidation>true</useBeanValidation>
+            <useClassLevelBeanValidation>true</useClassLevelBeanValidation>
+
+            <!-- why using java.util.List while the schema specifies uniqueItems? -->
+            <useSetForUniqueItems>true</useSetForUniqueItems>
+
+            <!-- to keep the existing code somehow compatible -->
+            <useWithModifiers>true</useWithModifiers>
+            <!-- proper formatting of query parameters -->
+            <useJacksonConversion>true</useJacksonConversion>
+
+            <!-- generate ApiClientConfiguration -->
+            <serviceId>access-control</serviceId>
+            <configName>access.control</configName>
+        </configOptions>
+    </configuration>
+```
 
 ## 0.10.0
 * *Maven Plugin*
