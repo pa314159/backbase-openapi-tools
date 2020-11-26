@@ -32,6 +32,7 @@ BOAT is still under development and subject to change.
   * Added `useClassLevelBeanValidation` option (defaults to `false`).
   * Added `useJacksonConversion` to use Jackson for parameters conversion instead of `toString` (defaults to `false`).
   * Added `serviceId` to use generate API bean factories (defaults to `""`, so no factory is generated).
+  * Added `configName` as the configuration name under `backbase.communication.services.` (defaults to `serviceId`).
 
 ## 0.10.0
 * *Maven Plugin*

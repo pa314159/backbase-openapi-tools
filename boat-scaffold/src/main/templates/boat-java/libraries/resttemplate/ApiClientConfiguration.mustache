@@ -17,11 +17,11 @@ import {{apiPackage}}.{{classname}};
 {{/apiInfo}}
 
 @Configuration("{{invokerPackage}}.ApiClientConfiguration")
-@ConfigurationProperties("backbase.communication.services.{{backbaseServiceId}}")
+@ConfigurationProperties("backbase.communication.services.{{configName}}")
 public class ApiClientConfiguration {
 
     @Value("${backbase.communication.http.default-scheme:http}")
-    @Pattern(regexp = "https?")
+    @Pattern(regexp = "^https?$")
     private String scheme;
 
     @Value("${backbase.communication.http.client.user-agent:{{httpUserAgent}}}")
@@ -30,7 +30,8 @@ public class ApiClientConfiguration {
     @Value("${backbase.communication.http.client.logging:false}")
     private boolean logging;
 
-    private String serviceId = "{{backbaseServiceId}}";
+    private String serviceId = "{{serviceId}}";
+    @Pattern(regexp = "^/.+")
     private String serviceUri = "";
 
 {{#apiInfo}}

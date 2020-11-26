@@ -37,7 +37,7 @@ public class BoatJavaCodeGenTests {
         options.put(USE_SET_FOR_UNIQUE_ITEMS, "true");
         options.put(USE_CLASS_LEVEL_BEAN_VALIDATION, "true");
         options.put(USE_JACKSON_CONVERSION, "true");
-        options.put(BACKBASE_SERVICE_ID, "service-id");
+        options.put(SERVICE_ID, "service-id");
 
         gen.processOpts();
 
@@ -45,7 +45,31 @@ public class BoatJavaCodeGenTests {
         assertThat(gen.useSetForUniqueItems, is(true));
         assertThat(gen.useClassLevelBeanValidation, is(true));
         assertThat(gen.useJacksonConversion, is(true));
-        assertThat(gen.backbaseServiceId, is("service-id"));
+        assertThat(gen.serviceId, is("service-id"));
+        assertThat(gen.configName, is("service-id"));
+    }
+
+    @Test
+    public void processOptsWithRestTemplateAndConfigName() {
+        final BoatJavaCodeGen gen = new BoatJavaCodeGen();
+        final Map<String, Object> options = gen.additionalProperties();
+
+        gen.setLibrary("resttemplate");
+        options.put(USE_WITH_MODIFIERS, "true");
+        options.put(USE_SET_FOR_UNIQUE_ITEMS, "true");
+        options.put(USE_CLASS_LEVEL_BEAN_VALIDATION, "true");
+        options.put(USE_JACKSON_CONVERSION, "true");
+        options.put(SERVICE_ID, "service-id");
+        options.put(CONFIG_NAME, "config-name");
+
+        gen.processOpts();
+
+        assertThat(gen.useWithModifiers, is(true));
+        assertThat(gen.useSetForUniqueItems, is(true));
+        assertThat(gen.useClassLevelBeanValidation, is(true));
+        assertThat(gen.useJacksonConversion, is(true));
+        assertThat(gen.serviceId, is("service-id"));
+        assertThat(gen.configName, is("config-name"));
     }
 
     @Test
@@ -57,7 +81,8 @@ public class BoatJavaCodeGenTests {
         options.put(USE_SET_FOR_UNIQUE_ITEMS, "true");
         options.put(USE_CLASS_LEVEL_BEAN_VALIDATION, "true");
         options.put(USE_JACKSON_CONVERSION, "true");
-        options.put(BACKBASE_SERVICE_ID, "service-id");
+        options.put(SERVICE_ID, "service-id");
+        options.put(CONFIG_NAME, "config-name");
 
         gen.processOpts();
 
@@ -65,7 +90,8 @@ public class BoatJavaCodeGenTests {
         assertThat(gen.useSetForUniqueItems, is(true));
         assertThat(gen.useClassLevelBeanValidation, is(false));
         assertThat(gen.useJacksonConversion, is(false));
-        assertThat(gen.backbaseServiceId, is(nullValue()));
+        assertThat(gen.serviceId, is(nullValue()));
+        assertThat(gen.configName, is(nullValue()));
     }
 
     @Test

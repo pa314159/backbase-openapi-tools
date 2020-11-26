@@ -42,10 +42,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.openapitools.jackson.nullable.JsonNullableModule;
 {{/threetenbp}}
 
-{{#backbaseServiceId}}
+{{#serviceId}}
 import static com.backbase.buildingblocks.backend.communication.http.HttpCommunicationConfiguration.INTER_SERVICE_REST_TEMPLATE_BEAN_NAME;
 import org.springframework.beans.factory.annotation.Qualifier;
-{{/backbaseServiceId}}
+{{/serviceId}}
 {{#useJacksonConversion}}
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.client.RestClientException;
@@ -118,19 +118,19 @@ public class ApiClient {
     private DateFormat dateFormat;
 {{/useJacksonConversion}}
 
-{{^backbaseServiceId}}
+{{^serviceId}}
     public ApiClient() {
         this.restTemplate = buildRestTemplate();
         init();
     }
-{{/backbaseServiceId}}
+{{/serviceId}}
 {{#useJacksonConversion}}
     @Autowired
     private ObjectMapper objectMapper;
 {{/useJacksonConversion}}
 
     @Autowired
-    public ApiClient({{#backbaseServiceId}}@Qualifier(INTER_SERVICE_REST_TEMPLATE_BEAN_NAME) {{/backbaseServiceId}}RestTemplate restTemplate) {
+    public ApiClient({{#serviceId}}@Qualifier(INTER_SERVICE_REST_TEMPLATE_BEAN_NAME) {{/serviceId}}RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
         init();
     }
@@ -328,13 +328,13 @@ public class ApiClient {
         return this;
     }
 
-    public void setDebugging(boolean debugging{{#backbaseServiceId}}, Class<?> category{{/backbaseServiceId}}) {
+    public void setDebugging(boolean debugging{{#serviceId}}, Class<?> category{{/serviceId}}) {
         List<ClientHttpRequestInterceptor> currentInterceptors = this.restTemplate.getInterceptors();
         if(debugging) {
             if (currentInterceptors == null) {
                 currentInterceptors = new ArrayList<ClientHttpRequestInterceptor>();
             }
-            ClientHttpRequestInterceptor interceptor = new ApiClientHttpRequestInterceptor({{#backbaseServiceId}}category{{/backbaseServiceId}});
+            ClientHttpRequestInterceptor interceptor = new ApiClientHttpRequestInterceptor({{#serviceId}}category{{/serviceId}});
             currentInterceptors.add(interceptor);
             this.restTemplate.setInterceptors(currentInterceptors);
         } else {
@@ -723,7 +723,7 @@ public class ApiClient {
         return cookieValue.toString();
     }
 
-{{^backbaseServiceId}}
+{{^serviceId}}
     /**
      * Build the RestTemplate used to make HTTP requests.
      * @return RestTemplate
@@ -755,7 +755,7 @@ public class ApiClient {
         restTemplate.setRequestFactory(new BufferingClientHttpRequestFactory(restTemplate.getRequestFactory()));
         return restTemplate;
     }
-{{/backbaseServiceId}}
+{{/serviceId}}
 
 {{#authMethods}}
     /**
@@ -777,13 +777,13 @@ public class ApiClient {
 {{/authMethods}}
 
     private class ApiClientHttpRequestInterceptor implements ClientHttpRequestInterceptor {
-        private final Log log{{^backbaseServiceId}} = LogFactory.getLog(ApiClientHttpRequestInterceptor.class){{/backbaseServiceId}};
+        private final Log log{{^serviceId}} = LogFactory.getLog(ApiClientHttpRequestInterceptor.class){{/serviceId}};
 
-{{#backbaseServiceId}}
+{{#serviceId}}
         ApiClientHttpRequestInterceptor(Class<?> category) {
             log = LogFactory.getLog(category);
         }
-{{/backbaseServiceId}}
+{{/serviceId}}
 
         @Override
         public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {

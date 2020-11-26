@@ -19,7 +19,8 @@ public class BoatJavaCodeGen extends JavaClientCodegen {
 
     public static final String USE_CLASS_LEVEL_BEAN_VALIDATION = "useClassLevelBeanValidation";
     public static final String USE_JACKSON_CONVERSION = "useJacksonConversion";
-    public static final String BACKBASE_SERVICE_ID = "backbaseServiceId";
+    public static final String SERVICE_ID = "serviceId";
+    public static final String CONFIG_NAME = "configName";
 
     /**
      * Whether to use {@code with} prefix for pojos modifiers.
@@ -48,7 +49,11 @@ public class BoatJavaCodeGen extends JavaClientCodegen {
 
     @Setter
     @Getter
-    protected String backbaseServiceId;
+    protected String serviceId;
+
+    @Setter
+    @Getter
+    protected String configName;
 
     public BoatJavaCodeGen() {
         this.embeddedTemplateDir = this.templateDir = NAME;
@@ -61,8 +66,10 @@ public class BoatJavaCodeGen extends JavaClientCodegen {
             "Use java.util.Set for arrays that have uniqueItems set to true", this.useSetForUniqueItems));
         this.cliOptions.add(CliOption.newBoolean(USE_JACKSON_CONVERSION,
             "Whether to use Jackson to convert query parameters to String", this.useJacksonConversion));
-        this.cliOptions.add(CliOption.newString(BACKBASE_SERVICE_ID,
-            "Generate Backbase specific bean factory for ApiClient"));
+        this.cliOptions.add(CliOption.newString(SERVICE_ID,
+            "Generate the Backbase specific bean factory for ApiClient for the given serviceId"));
+        this.cliOptions.add(CliOption.newString(CONFIG_NAME,
+            "The configuration name under \"backbase.communication.services.\" - defaults to serviceId"));
     }
 
     @Override
@@ -102,8 +109,13 @@ public class BoatJavaCodeGen extends JavaClientCodegen {
                     this.supportingFiles.removeIf(f -> f.templateFile.equals("RFC3339DateFormat.mustache"));
                 }
             }
-            if (this.additionalProperties.containsKey(BACKBASE_SERVICE_ID)) {
-                this.backbaseServiceId = (String) this.additionalProperties.get(BACKBASE_SERVICE_ID);
+            if (this.additionalProperties.containsKey(SERVICE_ID)) {
+                this.serviceId =
+                    this.configName = (String) this.additionalProperties.get(SERVICE_ID);
+
+                if (this.additionalProperties.containsKey(CONFIG_NAME)) {
+                    this.configName = (String) this.additionalProperties.get(CONFIG_NAME);
+                }
 
                 this.supportingFiles.add(new SupportingFile("ApiClientConfiguration.mustache",
                     getInvokerPackage().replace('.', File.separatorChar), "ApiClientConfiguration.java"));

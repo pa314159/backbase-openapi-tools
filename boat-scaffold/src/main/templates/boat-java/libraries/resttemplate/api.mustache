@@ -33,8 +33,8 @@ import org.springframework.validation.annotation.Validated;
 {{/useBeanValidation}}
 
 {{>generatedAnnotation}}
-{{^backbaseServiceId}}@Component("{{package}}.{{classname}}")
-{{/backbaseServiceId}}{{!
+{{^serviceId}}@Component("{{package}}.{{classname}}")
+{{/serviceId}}{{!
 }}{{#operations}}
 {{#useBeanValidation}}{{!
 }}{{#useClassLevelBeanValidation}}{{!
@@ -42,13 +42,13 @@ import org.springframework.validation.annotation.Validated;
 {{/useClassLevelBeanValidation}}{{!
 }}{{/useBeanValidation}}
 public class {{classname}} {
-    private {{#backbaseServiceId}}final {{/backbaseServiceId}}ApiClient apiClient;
+    private {{#serviceId}}final {{/serviceId}}ApiClient apiClient;
 
-{{^backbaseServiceId}}
+{{^serviceId}}
     public {{classname}}() {
         this(new ApiClient());
     }
-{{/backbaseServiceId}}
+{{/serviceId}}
 
     @Autowired
     public {{classname}}(ApiClient apiClient) {
@@ -59,11 +59,11 @@ public class {{classname}} {
         return apiClient;
     }
 
-{{^backbaseServiceId}}
+{{^serviceId}}
     public void setApiClient(ApiClient apiClient) {
         this.apiClient = apiClient;
     }
-{{/backbaseServiceId}}
+{{/serviceId}}
 
     {{#operation}}
     /**
