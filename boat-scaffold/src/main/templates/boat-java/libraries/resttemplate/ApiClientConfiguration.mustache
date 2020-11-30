@@ -39,7 +39,7 @@ public class ApiClientConfiguration {
 
     @Bean
     public {{classname}} create{{classname}}(ApiClient apiClient) {
-        return createClient(apiClient, {{classname}}::new);
+        return createClient(apiClient, "{{classname}}", {{classname}}::new);
     }
 {{/apis}}
 {{/apiInfo}}
@@ -52,13 +52,13 @@ public class ApiClientConfiguration {
         this.serviceUri = serviceUri;
     }
 
-    private <T> T createClient(ApiClient apiClient, Function<ApiClient, T> bld) {
+    private <T> T createClient(ApiClient apiClient, String logName, Function<ApiClient, T> bld) {
         final T client = bld.apply(apiClient);
 
         apiClient.setBasePath(String.format("%s://%s%s", scheme, serviceId, serviceUri));
         apiClient.addDefaultHeader(INTERCEPTORS_ENABLED_HEADER, "true");
         apiClient.setUserAgent(userAgent);
-        apiClient.setDebugging(logging, bld.getClass());
+        apiClient.setDebugging(logging, logName);
 
         return client;
     }

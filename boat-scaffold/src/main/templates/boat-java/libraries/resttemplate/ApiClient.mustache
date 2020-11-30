@@ -328,7 +328,7 @@ public class ApiClient {
         return this;
     }
 
-    public void setDebugging(boolean debugging{{#serviceId}}, Class<?> category{{/serviceId}}) {
+    public void setDebugging(boolean debugging{{#serviceId}}, String category{{/serviceId}}) {
         List<ClientHttpRequestInterceptor> currentInterceptors = this.restTemplate.getInterceptors();
         if(debugging) {
             if (currentInterceptors == null) {
@@ -780,7 +780,7 @@ public class ApiClient {
         private final Log log{{^serviceId}} = LogFactory.getLog(ApiClientHttpRequestInterceptor.class){{/serviceId}};
 
 {{#serviceId}}
-        ApiClientHttpRequestInterceptor(Class<?> category) {
+        ApiClientHttpRequestInterceptor(String category) {
             log = LogFactory.getLog(category);
         }
 {{/serviceId}}
