@@ -1,5 +1,7 @@
 package {{invokerPackage}};
 
+import static java.util.stream.Collectors.joining;
+
 {{#withXml}}
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.ser.ToXmlGenerator;
@@ -53,6 +55,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 {{/useJacksonConversion}}
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -328,27 +331,35 @@ public class ApiClient {
         return this;
     }
 
-    public void setDebugging(boolean debugging{{#serviceId}}, String category{{/serviceId}}) {
+    public void setDebugging(boolean debugging) {
         List<ClientHttpRequestInterceptor> currentInterceptors = this.restTemplate.getInterceptors();
+
+        if (currentInterceptors != null && !currentInterceptors.isEmpty()) {
+            Iterator<ClientHttpRequestInterceptor> iter = currentInterceptors.iterator();
+            while (iter.hasNext()) {
+                ClientHttpRequestInterceptor interceptor = iter.next();
+                if (interceptor instanceof ApiClientHttpRequestInterceptor) {
+                    if (debugging) {
+                        return;
+                    }
+
+                    iter.remove();
+                }
+            }
+        }
+
         if(debugging) {
             if (currentInterceptors == null) {
                 currentInterceptors = new ArrayList<ClientHttpRequestInterceptor>();
             }
-            ClientHttpRequestInterceptor interceptor = new ApiClientHttpRequestInterceptor({{#serviceId}}category{{/serviceId}});
-            currentInterceptors.add(interceptor);
-            this.restTemplate.setInterceptors(currentInterceptors);
-        } else {
-            if (currentInterceptors != null && !currentInterceptors.isEmpty()) {
-                Iterator<ClientHttpRequestInterceptor> iter = currentInterceptors.iterator();
-                while (iter.hasNext()) {
-                    ClientHttpRequestInterceptor interceptor = iter.next();
-                    if (interceptor instanceof ApiClientHttpRequestInterceptor) {
-                        iter.remove();
-                    }
-                }
-                this.restTemplate.setInterceptors(currentInterceptors);
+            currentInterceptors.add(new ApiClientHttpRequestInterceptor());
+
+            if (!(restTemplate.getRequestFactory() instanceof BufferingClientHttpRequestFactory)) {
+                restTemplate.setRequestFactory(new BufferingClientHttpRequestFactory(restTemplate.getRequestFactory()));
             }
         }
+
+        this.restTemplate.setInterceptors(currentInterceptors);
         this.debugging = debugging;
     }
 
@@ -421,7 +432,7 @@ public class ApiClient {
         }
 {{#useJacksonConversion}}
         try {
-            return this.objectMapper.writeValueAsString(param);
+            return unquote(this.objectMapper.writeValueAsString(param));
         } catch (final JsonProcessingException e) {
             throw new RestClientException(String.format("Cannot convert parameter %s to string", param), e);
         }
@@ -443,6 +454,12 @@ public class ApiClient {
         }
 {{/useJacksonConversion}}
     }
+
+{{#useJacksonConversion}}
+    private String unquote(String text) {
+        return text.replaceAll("\\\"", "").replace("^\"|\"$", "");
+    }
+{{/useJacksonConversion}}
 
     /**
     * Formats the specified collection path parameter to a string value.
@@ -776,14 +793,8 @@ public class ApiClient {
     }
 {{/authMethods}}
 
-    private class ApiClientHttpRequestInterceptor implements ClientHttpRequestInterceptor {
-        private final Log log{{^serviceId}} = LogFactory.getLog(ApiClientHttpRequestInterceptor.class){{/serviceId}};
-
-{{#serviceId}}
-        ApiClientHttpRequestInterceptor(String category) {
-            log = LogFactory.getLog(category);
-        }
-{{/serviceId}}
+    static private class ApiClientHttpRequestInterceptor implements ClientHttpRequestInterceptor {
+        private final Log log = LogFactory.getLog(ApiClient.class);
 
         @Override
         public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
@@ -793,44 +804,65 @@ public class ApiClient {
             return response;
         }
 
-        private void logRequest(HttpRequest request, byte[] body) throws UnsupportedEncodingException {
-            log.info("URI: " + request.getURI());
-            log.info("HTTP Method: " + request.getMethod());
-            log.info("HTTP Headers: " + headersToString(request.getHeaders()));
-            log.info("Request Body: " + new String(body, StandardCharsets.UTF_8));
+        private void logRequest(HttpRequest request, byte[] body) throws IOException {
+            if (log.isInfoEnabled()) {
+                log.info(String.format("< %s %s ", request.getMethod(), request.getURI()));
+
+                request.getHeaders().forEach((name, value) -> {
+                    log.info(String.format("< %s: %s", name, value.stream().collect(joining(", "))));
+                });
+
+                log.info(bodyToString(new ByteArrayInputStream(body), "< "));
+            }
         }
 
         private void logResponse(ClientHttpResponse response) throws IOException {
-            log.info("HTTP Status Code: " + response.getRawStatusCode());
-            log.info("Status Text: " + response.getStatusText());
-            log.info("HTTP Headers: " + headersToString(response.getHeaders()));
-            log.info("Response Body: " + bodyToString(response.getBody()));
+            if (log.isInfoEnabled()) {
+                log.info(String.format("> %s %s", response.getRawStatusCode(), response.getStatusText()));
+
+                response.getHeaders().forEach((name, value) -> {
+                    log.info(String.format("> %s: %s", name, value.stream().collect(joining(", "))));
+                });
+
+                log.info(bodyToString(response.getBody(), "> "));
+            }
         }
 
-        private String headersToString(HttpHeaders headers) {
-            StringBuilder builder = new StringBuilder();
-            for(Entry<String, List<String>> entry : headers.entrySet()) {
-                builder.append(entry.getKey()).append("=[");
-                for(String value : entry.getValue()) {
-                    builder.append(value).append(",");
+        private String bodyToString(InputStream body, String prefix) throws IOException {
+            if (body.markSupported()) {
+                final byte[] data = new byte[8192];
+
+                body.mark(data.length);
+                final int count = body.read(data);
+                body.reset();
+
+                final ByteArrayInputStream input = new ByteArrayInputStream(data, 0, count);
+                final StringBuilder builder = new StringBuilder();
+                final BufferedReader bufferedReader =
+                    new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+
+                String line;
+                while ((line = readLine(bufferedReader)) != null) {
+                    builder.append(prefix).append(line).append(System.lineSeparator());
+
+                    line = bufferedReader.readLine();
                 }
-                builder.setLength(builder.length() - 1); // Get rid of trailing comma
-                builder.append("],");
+
+
+                return builder.toString();
+            } else {
+                return "<unknown>";
             }
-            builder.setLength(builder.length() - 1); // Get rid of trailing comma
-            return builder.toString();
         }
 
-        private String bodyToString(InputStream body) throws IOException {
-            StringBuilder builder = new StringBuilder();
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(body, StandardCharsets.UTF_8));
-            String line = bufferedReader.readLine();
-            while (line != null) {
-                builder.append(line).append(System.lineSeparator());
-                line = bufferedReader.readLine();
+        private String readLine(BufferedReader rd) {
+            String line;
+            try {
+                line = rd.readLine();
+            } catch (final IOException e) {
+                line = null;
             }
-            bufferedReader.close();
-            return builder.toString();
+            return line;
         }
     }
 }
