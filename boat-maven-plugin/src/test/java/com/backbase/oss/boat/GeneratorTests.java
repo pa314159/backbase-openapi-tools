@@ -1,24 +1,40 @@
 package com.backbase.oss.boat;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.io.File;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.TimeZone;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.invoker.*;
+import org.apache.maven.shared.invoker.DefaultInvocationRequest;
+import org.apache.maven.shared.invoker.DefaultInvoker;
+import org.apache.maven.shared.invoker.InvocationRequest;
+import org.apache.maven.shared.invoker.InvocationResult;
+import org.apache.maven.shared.invoker.Invoker;
+import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.codehaus.plexus.logging.console.ConsoleLogger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.sonatype.plexus.build.incremental.DefaultBuildContext;
-import java.io.File;
-import java.util.*;
-import static org.junit.jupiter.api.Assertions.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @Slf4j
 public class GeneratorTests {
+
+    static void assumeMaven() {
+        assumeTrue(System.getenv().containsKey("M2_HOME") || System.getProperties().containsKey("maven.home"));
+    }
 
     @BeforeAll
     static void setupLocale() {
@@ -50,7 +66,8 @@ public class GeneratorTests {
         mojo.skipIfSpecIsUnchanged = false;
         mojo.execute();
 
-        assertThat(output.list()).containsExactlyInAnyOrder("index.html", ".openapi-generator-ignore", ".openapi-generator");
+        assertThat(output.list()).containsExactlyInAnyOrder("index.html", ".openapi-generator-ignore",
+            ".openapi-generator");
     }
 
     @Test
@@ -81,7 +98,8 @@ public class GeneratorTests {
         mojo.dereferenceComponents = true;
         mojo.execute();
 
-        assertThat(output.list()).containsExactlyInAnyOrder("index.html", ".openapi-generator-ignore", ".openapi-generator");
+        assertThat(output.list()).containsExactlyInAnyOrder("index.html", ".openapi-generator-ignore",
+            ".openapi-generator");
     }
 
     @Test
@@ -120,7 +138,8 @@ public class GeneratorTests {
         mojo.execute();
         String[] actualGeneratedFiles = output.list();
         Arrays.sort(actualGeneratedFiles);
-        String[] expectedFiles = {".openapi-generator", ".openapi-generator-ignore", "dereferenced-openapi.yml", "index.html"};
+        String[] expectedFiles =
+            {".openapi-generator", ".openapi-generator-ignore", "dereferenced-openapi.yml", "index.html"};
         assertArrayEquals(expectedFiles, actualGeneratedFiles);
     }
 
@@ -166,7 +185,8 @@ public class GeneratorTests {
     @Test
     public void testAngularExamplesInComponents() {
 
-        String spec = System.getProperty("spec", getClass().getResource("/oas-examples/pet-store-example-in-components.yaml").getFile());
+        String spec = System.getProperty("spec",
+            getClass().getResource("/oas-examples/pet-store-example-in-components.yaml").getFile());
 
         log.info("Generating client for: {}", spec);
 
@@ -273,6 +293,8 @@ public class GeneratorTests {
 
     @Test
     public void testJavaClient() throws MojoExecutionException, MavenInvocationException {
+        assumeMaven();
+
         GenerateMojo mojo = new GenerateMojo();
 
         String spec = System.getProperty("spec", getClass().getResource("/oas-examples/petstore.yaml").getFile());
@@ -311,6 +333,8 @@ public class GeneratorTests {
 
     @Test
     public void testReactiveJavaClient() throws MojoExecutionException, MavenInvocationException {
+        assumeMaven();
+
         GenerateMojo mojo = new GenerateMojo();
 
         String spec = System.getProperty("spec", getClass().getResource("/oas-examples/petstore.yaml").getFile());

@@ -3,27 +3,19 @@ package com.backbase.oss.boat;
 import com.backbase.oss.boat.transformers.Bundler;
 import com.backbase.oss.boat.transformers.DereferenceComponentsPropertiesTransformer;
 import com.backbase.oss.boat.transformers.UnAliasTransformer;
-import com.google.common.hash.Hashing;
-import com.google.common.io.ByteSource;
-import com.google.common.io.CharSource;
+import com.backbase.oss.util.CachedResource;
 import com.google.common.io.Files;
 import io.swagger.v3.core.util.Yaml;
-import io.swagger.v3.parser.core.models.AuthorizationValue;
-import io.swagger.v3.parser.util.ClasspathHelper;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLConnection;
-import java.nio.channels.Channels;
-import java.nio.channels.FileChannel;
-import java.nio.channels.ReadableByteChannel;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardCopyOption;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +25,7 @@ import java.util.Objects;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
@@ -40,12 +33,17 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.settings.Server;
+import org.apache.maven.settings.building.SettingsProblem;
+import org.apache.maven.settings.crypto.DefaultSettingsDecryptionRequest;
+import org.apache.maven.settings.crypto.SettingsDecrypter;
+import org.apache.maven.settings.crypto.SettingsDecryptionRequest;
+import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.openapitools.codegen.CliOption;
 import org.openapitools.codegen.ClientOptInput;
 import org.openapitools.codegen.CodegenConfig;
 import org.openapitools.codegen.CodegenConstants;
 import org.openapitools.codegen.DefaultGenerator;
-import org.openapitools.codegen.auth.AuthParser;
 import org.openapitools.codegen.config.CodegenConfigurator;
 import org.openapitools.codegen.config.GlobalSettings;
 import org.sonatype.plexus.build.incremental.BuildContext;
@@ -187,6 +185,24 @@ public class GenerateMojo extends AbstractMojo {
      */
     @Parameter(name = "auth", property = "openapi.generator.maven.plugin.auth")
     protected String auth;
+
+    /**
+     * Retrieves the authorization headers from Maven's {@code settings.xml}.
+     */
+    @Parameter(name = "serverId", property = "openapi.generator.maven.plugin.serverId")
+    protected String serverId;
+
+    /**
+     * Cache remote locations to this directory.
+     */
+    @Parameter(name = "localCache", property = "openapi.generator.maven.plugin.localCache",
+        defaultValue = "${user.home}/.cache/boat")
+    protected File localCache;
+
+    @Parameter(defaultValue = "${session}", readonly = true)
+    private MavenSession session;
+    @Component
+    private SettingsDecrypter decrypter;
 
     /**
      * Path to separate json configuration file.
@@ -504,405 +520,25 @@ public class GenerateMojo extends AbstractMojo {
             return;
         }
 
+        CachedResource resource = new CachedResource(localCache, inputSpec);
 
-
-        File inputSpecFile = new File(inputSpec);
-        File inputParent = inputSpecFile.getParentFile();
-
-        if (inputParent.isDirectory()) {
-            try {
-                String[] files = Utils.selectInputs(inputParent.toPath(), inputSpecFile.getName());
-
-                switch (files.length) {
-                    case 0:
-                        throw new MojoExecutionException(
-                            format("Input spec %s doesn't match any local file", inputSpec));
-
-                    case 1:
-                        inputSpecFile = new File(inputParent, files[0]);
-                        inputSpec = inputSpecFile.getAbsolutePath();
-                        break;
-
-                    default:
-                        throw new MojoExecutionException(
-                            format("Input spec %s matches more than one single file", inputSpec));
-                }
-            } catch (IOException e) {
-                throw new MojoExecutionException("Cannot find input " + inputSpec);
-            }
+        if (isNotEmpty(auth)) {
+            resource.setAuth(auth);
+        } else if (isNotEmpty(serverId)) {
+            resource.setAuth(readAuthorization());
         }
 
-        addCompileSourceRootIfConfigured();
-
         try {
-            if (buildContext != null && buildContext.isIncremental() && inputSpec != null && inputSpecFile.exists()
-                && !buildContext.hasDelta(inputSpecFile)) {
-                getLog().info(
-                    "Code generation is skipped in delta-build because source-json was not modified.");
-                return;
-            }
+            execute(resource);
 
-            if (skipIfSpecIsUnchanged && inputSpecFile.exists()) {
-                File storedInputSpecHashFile = getHashFile(inputSpecFile);
-                if (storedInputSpecHashFile.exists()) {
-                    String inputSpecHash = calculateInputSpecHash(inputSpecFile);
-                    String storedInputSpecHash = Files.asCharSource(storedInputSpecHashFile, StandardCharsets.UTF_8)
-                        .read();
-                    if (inputSpecHash.equals(storedInputSpecHash)) {
-                        getLog().info(
-                            "Code generation is skipped because input was unchanged");
-                        return;
-                    }
-                }
-            }
-
-            // Copy openapi input spec to location.
-            if (inputSpecFile.exists() && copyTo != null) {
-                getLog().info("Copying input spec to: " + copyTo);
-                copyTo.mkdirs();
-                java.nio.file.Files.copy(inputSpecFile.toPath(), copyTo.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            }
-
-            // attempt to read from config file
-            CodegenConfigurator configurator = CodegenConfigurator.fromFile(configurationFile);
-
-            // if a config file wasn't specified or we were unable to read it
-            if (configurator == null) {
-                configurator = new CodegenConfigurator();
-            }
-
-            configurator.setVerbose(verbose);
-
-            if (skipOverwrite != null) {
-                configurator.setSkipOverwrite(skipOverwrite);
-            }
-
-            if (removeOperationIdPrefix != null) {
-                configurator.setRemoveOperationIdPrefix(removeOperationIdPrefix);
-            }
-
-            if (isNotEmpty(inputSpec)) {
-                configurator.setInputSpec(inputSpec);
-            }
-
-            if (isNotEmpty(gitHost)) {
-                configurator.setGitHost(gitHost);
-            }
-
-            if (isNotEmpty(gitUserId)) {
-                configurator.setGitUserId(gitUserId);
-            }
-
-            if (isNotEmpty(gitRepoId)) {
-                configurator.setGitRepoId(gitRepoId);
-            }
-
-            if (isNotEmpty(ignoreFileOverride)) {
-                configurator.setIgnoreFileOverride(ignoreFileOverride);
-            }
-
-            if (isNotEmpty(httpUserAgent)) {
-                configurator.setHttpUserAgent(httpUserAgent);
-            }
-
-            if (skipValidateSpec != null) {
-                configurator.setValidateSpec(!skipValidateSpec);
-            }
-
-            if (strictSpec != null) {
-                configurator.setStrictSpecBehavior(strictSpec);
-            }
-
-            if (logToStderr != null) {
-                configurator.setLogToStderr(logToStderr);
-            }
-
-            if (enablePostProcessFile != null) {
-                configurator.setEnablePostProcessFile(enablePostProcessFile);
-            }
-
-            if (generateAliasAsModel != null) {
-                configurator.setGenerateAliasAsModel(generateAliasAsModel);
-            }
-
-            if (isNotEmpty(generatorName)) {
-                switch (generatorName) {
-                    case "java":
-                    case "spring":
-                        generatorName = "boat-" + generatorName;
-                        break;
-
-                    case "html2":
-                        generatorName = "boat-docs";
-                        break;
-                    default:
-                        // use the original generator
-                }
-
-                configurator.setGeneratorName(generatorName);
-
-
-                // check if generatorName & language are set together, inform user this needs to be updated to prevent future issues.
-                if (isNotEmpty(language)) {
-                    log.warn(
-                        "The 'language' option is deprecated and was replaced by 'generatorName'. Both can not be set together");
-                    throw new MojoExecutionException(
-                        "Illegal configuration: 'language' and  'generatorName' can not be set both, remove 'language' from your configuration");
-                }
-            } else if (isNotEmpty(language)) {
-                log.warn(
-                    "The 'language' option is deprecated and may reference language names only in the next major release (4.0). Please use 'generatorName' instead.");
-                configurator.setGeneratorName(language);
-            } else {
-                log.error("A generator name (generatorName) is required.");
-                throw new MojoExecutionException(
-                    "The generator requires 'generatorName'. Refer to documentation for a list of options.");
-            }
-
-            configurator.setOutputDir(output.getAbsolutePath());
-
-            if (isNotEmpty(auth)) {
-                configurator.setAuth(auth);
-            }
-
-            if (isNotEmpty(apiPackage)) {
-                configurator.setApiPackage(apiPackage);
-            }
-
-            if (isNotEmpty(modelPackage)) {
-                configurator.setModelPackage(modelPackage);
-            }
-
-            if (isNotEmpty(invokerPackage)) {
-                configurator.setInvokerPackage(invokerPackage);
-            }
-
-            if (isNotEmpty(packageName)) {
-                configurator.setPackageName(packageName);
-            }
-
-            if (isNotEmpty(groupId)) {
-                configurator.setGroupId(groupId);
-            }
-
-            if (isNotEmpty(artifactId)) {
-                configurator.setArtifactId(artifactId);
-            }
-
-            if (isNotEmpty(artifactVersion)) {
-                configurator.setArtifactVersion(artifactVersion);
-            }
-
-            if (isNotEmpty(library)) {
-                configurator.setLibrary(library);
-            }
-
-            if (isNotEmpty(apiNameSuffix)) {
-                configurator.setApiNameSuffix(apiNameSuffix);
-            }
-
-            if (isNotEmpty(modelNamePrefix)) {
-                configurator.setModelNamePrefix(modelNamePrefix);
-            }
-
-            if (isNotEmpty(modelNameSuffix)) {
-                configurator.setModelNameSuffix(modelNameSuffix);
-            }
-
-            if (null != templateDirectory) {
-                configurator.setTemplateDir(templateDirectory.getAbsolutePath());
-            }
-
-            if (null != engine) {
-                configurator.setTemplatingEngineName(engine);
-            }
-
-            // Set generation options
-            if (null != generateApis && generateApis) {
-                GlobalSettings.setProperty(CodegenConstants.APIS, trimCSV(apisToGenerate));
-            } else {
-                GlobalSettings.clearProperty(CodegenConstants.APIS);
-            }
-
-            if (null != generateModels && generateModels) {
-                GlobalSettings.setProperty(CodegenConstants.MODELS, trimCSV(modelsToGenerate));
-            } else {
-                GlobalSettings.clearProperty(CodegenConstants.MODELS);
-            }
-
-            if (null != generateSupportingFiles && generateSupportingFiles) {
-                GlobalSettings.setProperty(CodegenConstants.SUPPORTING_FILES, trimCSV(supportingFilesToGenerate));
-            } else {
-                GlobalSettings.clearProperty(CodegenConstants.SUPPORTING_FILES);
-            }
-
-            GlobalSettings.setProperty(CodegenConstants.MODEL_TESTS, generateModelTests.toString());
-            GlobalSettings.setProperty(CodegenConstants.MODEL_DOCS, generateModelDocumentation.toString());
-            GlobalSettings.setProperty(CodegenConstants.API_TESTS, generateApiTests.toString());
-            GlobalSettings.setProperty(CodegenConstants.API_DOCS, generateApiDocumentation.toString());
-            GlobalSettings.setProperty(CodegenConstants.WITH_XML, withXml.toString());
-
-            if (configOptions != null) {
-                // Retained for backwards-compataibility with configOptions -> instantiation-types
-                if (instantiationTypes == null && configOptions.containsKey(INSTANTIATION_TYPES)) {
-                    applyInstantiationTypesKvp(configOptions.get(INSTANTIATION_TYPES).toString(),
-                        configurator);
-                }
-
-                // Retained for backwards-compataibility with configOptions -> import-mappings
-                if (importMappings == null && configOptions.containsKey(IMPORT_MAPPINGS)) {
-                    applyImportMappingsKvp(configOptions.get(IMPORT_MAPPINGS).toString(),
-                        configurator);
-                }
-
-                // Retained for backwards-compataibility with configOptions -> type-mappings
-                if (typeMappings == null && configOptions.containsKey(TYPE_MAPPINGS)) {
-                    applyTypeMappingsKvp(configOptions.get(TYPE_MAPPINGS).toString(), configurator);
-                }
-
-                // Retained for backwards-compataibility with configOptions -> language-specific-primitives
-                if (languageSpecificPrimitives == null && configOptions.containsKey(LANGUAGE_SPECIFIC_PRIMITIVES)) {
-                    applyLanguageSpecificPrimitivesCsv(configOptions
-                        .get(LANGUAGE_SPECIFIC_PRIMITIVES).toString(), configurator);
-                }
-
-                // Retained for backwards-compataibility with configOptions -> additional-properties
-                if (additionalProperties == null && configOptions.containsKey(ADDITIONAL_PROPERTIES)) {
-                    applyAdditionalPropertiesKvp(configOptions.get(ADDITIONAL_PROPERTIES).toString(),
-                        configurator);
-                }
-
-                if (serverVariableOverrides == null && configOptions.containsKey(SERVER_VARIABLES)) {
-                    applyServerVariablesKvp(configOptions.get(SERVER_VARIABLES).toString(), configurator);
-                }
-
-                // Retained for backwards-compataibility with configOptions -> reserved-words-mappings
-                if (reservedWordsMappings == null && configOptions.containsKey(RESERVED_WORDS_MAPPINGS)) {
-                    applyReservedWordsMappingsKvp(configOptions.get(RESERVED_WORDS_MAPPINGS)
-                        .toString(), configurator);
-                }
-            }
-
-            // Apply Instantiation Types
-            if (instantiationTypes != null && (configOptions == null || !configOptions.containsKey(
-                INSTANTIATION_TYPES))) {
-                applyInstantiationTypesKvpList(instantiationTypes, configurator);
-            }
-
-            // Apply Import Mappings
-            if (importMappings != null && (configOptions == null || !configOptions.containsKey(IMPORT_MAPPINGS))) {
-                applyImportMappingsKvpList(importMappings, configurator);
-            }
-
-            // Apply Type Mappings
-            if (typeMappings != null && (configOptions == null || !configOptions.containsKey(TYPE_MAPPINGS))) {
-                applyTypeMappingsKvpList(typeMappings, configurator);
-            }
-
-            // Apply Language Specific Primitives
-            if (languageSpecificPrimitives != null
-                && (configOptions == null || !configOptions.containsKey(LANGUAGE_SPECIFIC_PRIMITIVES))) {
-                applyLanguageSpecificPrimitivesCsvList(languageSpecificPrimitives, configurator);
-            }
-
-            // Apply Additional Properties
-            if (additionalProperties != null && (configOptions == null || !configOptions.containsKey(
-                ADDITIONAL_PROPERTIES))) {
-                applyAdditionalPropertiesKvpList(additionalProperties, configurator);
-            }
-
-            if (serverVariableOverrides != null && (configOptions == null || !configOptions.containsKey(
-                SERVER_VARIABLES))) {
-                applyServerVariablesKvpList(serverVariableOverrides, configurator);
-            }
-
-            // Apply Reserved Words Mappings
-            if (reservedWordsMappings != null && (configOptions == null || !configOptions.containsKey(
-                RESERVED_WORDS_MAPPINGS))) {
-                applyReservedWordsMappingsKvpList(reservedWordsMappings, configurator);
-            }
-
-            if (environmentVariables != null) {
-
-                for (Entry<String, String> entry : environmentVariables.entrySet()) {
-                    String key = entry.getKey();
-                    originalEnvironmentVariables.put(key, GlobalSettings.getProperty(key));
-                    String value = environmentVariables.get(key);
-                    if (value == null) {
-                        // don't put null values
-                        value = "";
-                    }
-                    GlobalSettings.setProperty(key, value);
-                    configurator.addSystemProperty(key, value);
-                }
-            }
-
-            final ClientOptInput input = configurator.toClientOptInput();
-            final CodegenConfig config = input.getConfig();
-
-            if (configOptions != null) {
-                for (CliOption langCliOption : config.cliOptions()) {
-                    if (configOptions.containsKey(langCliOption.getOpt())) {
-                        input.getConfig().additionalProperties()
-                            .put(langCliOption.getOpt(), configOptions.get(langCliOption.getOpt()));
-                    }
-                }
-            }
-
-            if (configHelp) {
-                for (CliOption langCliOption : config.cliOptions()) {
-                    getLog().info("\t" + langCliOption.getOpt());
-                    getLog().info("\t    "
-                        + langCliOption.getOptionHelp().replace("\n", "\n\t    "));
-                }
-                return;
-            }
-            adjustAdditionalProperties(config);
-
-            if (unAlias) {
-                new UnAliasTransformer().transform(input.getOpenAPI(), emptyMap());
-                if(writeDebugFiles) {
-                    java.nio.file.Files.write(new File(output, "openapi-unaliased.yaml").toPath(), Yaml.pretty(input.getOpenAPI()).getBytes());
-                }
-            }
-            if (dereferenceComponents) {
-                new DereferenceComponentsPropertiesTransformer().transform(input.getOpenAPI(), emptyMap());
-                if(writeDebugFiles) {
-                    java.nio.file.Files.write(new File(output, "openapi-dereferenced.yaml").toPath(), Yaml.pretty(input.getOpenAPI()).getBytes());
-                }
-            }
-
-            if(bundleSpecs) {
-                new Bundler(inputSpecFile).transform(input.getOpenAPI(), Collections.emptyMap());
-
-                if(writeDebugFiles) {
-                    java.nio.file.Files.write(new File(output, "openapi-bundled.yaml").toPath(), Yaml.pretty(input.getOpenAPI()).getBytes());
-                }
-            }
-
-
-            new DefaultGenerator().opts(input).generate();
-
-            if (buildContext != null) {
-                buildContext.refresh(new File(getCompileSourceRoot()));
-            }
-
-            // Store a checksum of the input spec
-            File storedInputSpecHashFile = getHashFile(inputSpecFile);
-            String inputSpecHash = calculateInputSpecHash(inputSpecFile);
-
-            if (storedInputSpecHashFile.getParent() != null && !new File(storedInputSpecHashFile.getParent()).exists()) {
-                File parent = new File(storedInputSpecHashFile.getParent());
-                parent.mkdirs();
-            }
-            Files.asCharSink(storedInputSpecHashFile, StandardCharsets.UTF_8).write(inputSpecHash);
-
+            addCompileSourceRootIfConfigured();
         } catch (Exception e) {
             // Maven logs exceptions thrown by plugins only if invoked with -e
             // I find it annoying to jump through hoops to get basic diagnostic information,
             // so let's log it in any case:
             if (buildContext != null) {
-                buildContext.addError(inputSpecFile, 0, 0, "unexpected error in Open-API generation", e);
+                buildContext.addMessage(new File(inputSpec), 0, 0,
+                    "unexpected error in Open-API generation", BuildContext.SEVERITY_ERROR, e);
             }
             getLog().error(e);
             throw new MojoExecutionException(
@@ -910,50 +546,369 @@ public class GenerateMojo extends AbstractMojo {
         }
     }
 
-    /**
-     * Calculate openapi specification file hash. If specification is hosted on remote resource it is downloaded first
-     *
-     * @param inputSpecFile - Openapi specification input file to calculate it's hash.
-     *                      Does not taken into account if input spec is hosted on remote resource
-     * @return openapi specification file hash
-     * @throws IOException When cannot read the file
-     */
-    @SuppressWarnings({"java:S2095", "java:S4790"})
-    private String calculateInputSpecHash(File inputSpecFile) throws IOException {
-
-        URL inputSpecRemoteUrl = inputSpecRemoteUrl();
-
-        File inputSpecTempFile = inputSpecFile;
-
-        if (inputSpecRemoteUrl != null) {
-            inputSpecTempFile = File.createTempFile("openapi-spec", ".tmp");
-
-            URLConnection conn = inputSpecRemoteUrl.openConnection();
-            if (isNotEmpty(auth)) {
-                List<AuthorizationValue> authList = AuthParser.parse(auth);
-                for (AuthorizationValue authorizationValue : authList) {
-                    conn.setRequestProperty(authorizationValue.getKeyName(), authorizationValue.getValue());
-                }
-            }
-            ReadableByteChannel readableByteChannel = Channels.newChannel(conn.getInputStream());
-
-            try (FileOutputStream fileOutputStream = new FileOutputStream(inputSpecTempFile)) {
-                FileChannel fileChannel = fileOutputStream.getChannel();
-                fileChannel.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
-            } catch (FileNotFoundException e) {
-                throw new IOException(e);
-            }
-
+    private void execute(CachedResource resource) throws MojoExecutionException, IOException {
+        if (buildContext != null && buildContext.isIncremental() && !buildContext.hasDelta(resource.getFile())) {
+            getLog().info("Code generation is skipped in delta-build because source-json was not modified.");
+            return;
         }
 
-        ByteSource inputSpecByteSource =
-            inputSpecTempFile.exists()
-                ? Files.asByteSource(inputSpecTempFile)
-                : CharSource
-                .wrap(ClasspathHelper.loadFileFromClasspath(inputSpecTempFile.toString().replaceAll("\\\\", "/")))
-                .asByteSource(StandardCharsets.UTF_8);
+        if (skipIfSpecIsUnchanged) {
+            File storedInputSpecHashFile = getHashFile(resource.getFile());
+            if (storedInputSpecHashFile.exists()) {
+                String inputSpecHash = resource.getHash();
+                String storedInputSpecHash = Files.asCharSource(storedInputSpecHashFile, StandardCharsets.UTF_8)
+                    .read();
+                if (inputSpecHash.equals(storedInputSpecHash)) {
+                    getLog().info(
+                        "Code generation is skipped because input was unchanged");
+                    return;
+                }
+            }
+        }
 
-        return inputSpecByteSource.hash(Hashing.sha256()).toString();
+        // Copy openapi input spec to location.
+        if (copyTo != null) {
+            getLog().info("Copying input spec to: " + copyTo);
+            copyTo.mkdirs();
+            java.nio.file.Files.copy(resource.getFile().toPath(), copyTo.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        // attempt to read from config file
+        CodegenConfigurator configurator = CodegenConfigurator.fromFile(configurationFile);
+
+        // if a config file wasn't specified or we were unable to read it
+        if (configurator == null) {
+            configurator = new CodegenConfigurator();
+        }
+
+        configurator.setInputSpec(resource.getFile().getAbsolutePath());
+        configurator.setVerbose(verbose);
+
+        if (skipOverwrite != null) {
+            configurator.setSkipOverwrite(skipOverwrite);
+        }
+
+        if (removeOperationIdPrefix != null) {
+            configurator.setRemoveOperationIdPrefix(removeOperationIdPrefix);
+        }
+
+        if (isNotEmpty(gitHost)) {
+            configurator.setGitHost(gitHost);
+        }
+
+        if (isNotEmpty(gitUserId)) {
+            configurator.setGitUserId(gitUserId);
+        }
+
+        if (isNotEmpty(gitRepoId)) {
+            configurator.setGitRepoId(gitRepoId);
+        }
+
+        if (isNotEmpty(ignoreFileOverride)) {
+            configurator.setIgnoreFileOverride(ignoreFileOverride);
+        }
+
+        if (isNotEmpty(httpUserAgent)) {
+            configurator.setHttpUserAgent(httpUserAgent);
+        }
+
+        if (skipValidateSpec != null) {
+            configurator.setValidateSpec(!skipValidateSpec);
+        }
+
+        if (strictSpec != null) {
+            configurator.setStrictSpecBehavior(strictSpec);
+        }
+
+        if (logToStderr != null) {
+            configurator.setLogToStderr(logToStderr);
+        }
+
+        if (enablePostProcessFile != null) {
+            configurator.setEnablePostProcessFile(enablePostProcessFile);
+        }
+
+        if (generateAliasAsModel != null) {
+            configurator.setGenerateAliasAsModel(generateAliasAsModel);
+        }
+
+        if (isNotEmpty(generatorName)) {
+            switch (generatorName) {
+                case "java":
+                case "spring":
+                    generatorName = "boat-" + generatorName;
+                    break;
+
+                case "html2":
+                    generatorName = "boat-docs";
+                    break;
+
+                default:
+                    // use the original generator
+            }
+
+            configurator.setGeneratorName(generatorName);
+
+
+                // check if generatorName & language are set together, inform user this needs to be updated to prevent future issues.
+            if (isNotEmpty(language)) {
+                log.warn(
+                    "The 'language' option is deprecated and was replaced by 'generatorName'. Both can not be set together");
+                throw new MojoExecutionException(
+                    "Illegal configuration: 'language' and  'generatorName' can not be set both, remove 'language' from your configuration");
+            }
+        } else if (isNotEmpty(language)) {
+            log.warn(
+                "The 'language' option is deprecated and may reference language names only in the next major release (4.0). Please use 'generatorName' instead.");
+            configurator.setGeneratorName(language);
+        } else {
+            log.error("A generator name (generatorName) is required.");
+            throw new MojoExecutionException(
+                "The generator requires 'generatorName'. Refer to documentation for a list of options.");
+        }
+
+        configurator.setOutputDir(output.getAbsolutePath());
+
+        if (isNotEmpty(auth)) {
+            configurator.setAuth(auth);
+        } else if (isNotEmpty(serverId)) {
+            configurator.setAuth(readAuthorization());
+        }
+
+        if (isNotEmpty(apiPackage)) {
+            configurator.setApiPackage(apiPackage);
+        }
+
+        if (isNotEmpty(modelPackage)) {
+            configurator.setModelPackage(modelPackage);
+        }
+
+        if (isNotEmpty(invokerPackage)) {
+            configurator.setInvokerPackage(invokerPackage);
+        }
+
+        if (isNotEmpty(packageName)) {
+            configurator.setPackageName(packageName);
+        }
+
+        if (isNotEmpty(groupId)) {
+            configurator.setGroupId(groupId);
+        }
+
+        if (isNotEmpty(artifactId)) {
+            configurator.setArtifactId(artifactId);
+        }
+
+        if (isNotEmpty(artifactVersion)) {
+            configurator.setArtifactVersion(artifactVersion);
+        }
+
+        if (isNotEmpty(library)) {
+            configurator.setLibrary(library);
+        }
+
+        if (isNotEmpty(apiNameSuffix)) {
+            configurator.setApiNameSuffix(apiNameSuffix);
+        }
+
+        if (isNotEmpty(modelNamePrefix)) {
+            configurator.setModelNamePrefix(modelNamePrefix);
+        }
+
+        if (isNotEmpty(modelNameSuffix)) {
+            configurator.setModelNameSuffix(modelNameSuffix);
+        }
+
+        if (null != templateDirectory) {
+            configurator.setTemplateDir(templateDirectory.getAbsolutePath());
+        }
+
+        if (null != engine) {
+            configurator.setTemplatingEngineName(engine);
+        }
+
+        // Set generation options
+        if (null != generateApis && generateApis) {
+            GlobalSettings.setProperty(CodegenConstants.APIS, trimCSV(apisToGenerate));
+        } else {
+            GlobalSettings.clearProperty(CodegenConstants.APIS);
+        }
+
+        if (null != generateModels && generateModels) {
+            GlobalSettings.setProperty(CodegenConstants.MODELS, trimCSV(modelsToGenerate));
+        } else {
+            GlobalSettings.clearProperty(CodegenConstants.MODELS);
+        }
+
+        if (null != generateSupportingFiles && generateSupportingFiles) {
+            GlobalSettings.setProperty(CodegenConstants.SUPPORTING_FILES, trimCSV(supportingFilesToGenerate));
+        } else {
+            GlobalSettings.clearProperty(CodegenConstants.SUPPORTING_FILES);
+        }
+
+        GlobalSettings.setProperty(CodegenConstants.MODEL_TESTS, generateModelTests.toString());
+        GlobalSettings.setProperty(CodegenConstants.MODEL_DOCS, generateModelDocumentation.toString());
+        GlobalSettings.setProperty(CodegenConstants.API_TESTS, generateApiTests.toString());
+        GlobalSettings.setProperty(CodegenConstants.API_DOCS, generateApiDocumentation.toString());
+        GlobalSettings.setProperty(CodegenConstants.WITH_XML, withXml.toString());
+
+        if (configOptions != null) {
+            // Retained for backwards-compataibility with configOptions -> instantiation-types
+            if (instantiationTypes == null && configOptions.containsKey(INSTANTIATION_TYPES)) {
+                applyInstantiationTypesKvp(configOptions.get(INSTANTIATION_TYPES).toString(),
+                    configurator);
+            }
+
+            // Retained for backwards-compataibility with configOptions -> import-mappings
+            if (importMappings == null && configOptions.containsKey(IMPORT_MAPPINGS)) {
+                applyImportMappingsKvp(configOptions.get(IMPORT_MAPPINGS).toString(),
+                    configurator);
+            }
+
+            // Retained for backwards-compataibility with configOptions -> type-mappings
+            if (typeMappings == null && configOptions.containsKey(TYPE_MAPPINGS)) {
+                applyTypeMappingsKvp(configOptions.get(TYPE_MAPPINGS).toString(), configurator);
+            }
+
+            // Retained for backwards-compataibility with configOptions -> language-specific-primitives
+            if (languageSpecificPrimitives == null && configOptions.containsKey(LANGUAGE_SPECIFIC_PRIMITIVES)) {
+                applyLanguageSpecificPrimitivesCsv(configOptions
+                    .get(LANGUAGE_SPECIFIC_PRIMITIVES).toString(), configurator);
+            }
+
+            // Retained for backwards-compataibility with configOptions -> additional-properties
+            if (additionalProperties == null && configOptions.containsKey(ADDITIONAL_PROPERTIES)) {
+                applyAdditionalPropertiesKvp(configOptions.get(ADDITIONAL_PROPERTIES).toString(),
+                    configurator);
+            }
+
+            if (serverVariableOverrides == null && configOptions.containsKey(SERVER_VARIABLES)) {
+                applyServerVariablesKvp(configOptions.get(SERVER_VARIABLES).toString(), configurator);
+            }
+
+            // Retained for backwards-compataibility with configOptions -> reserved-words-mappings
+            if (reservedWordsMappings == null && configOptions.containsKey(RESERVED_WORDS_MAPPINGS)) {
+                applyReservedWordsMappingsKvp(configOptions.get(RESERVED_WORDS_MAPPINGS)
+                    .toString(), configurator);
+            }
+        }
+
+        // Apply Instantiation Types
+        if (instantiationTypes != null && (configOptions == null || !configOptions.containsKey(
+            INSTANTIATION_TYPES))) {
+            applyInstantiationTypesKvpList(instantiationTypes, configurator);
+        }
+
+        // Apply Import Mappings
+        if (importMappings != null && (configOptions == null || !configOptions.containsKey(IMPORT_MAPPINGS))) {
+            applyImportMappingsKvpList(importMappings, configurator);
+        }
+
+        // Apply Type Mappings
+        if (typeMappings != null && (configOptions == null || !configOptions.containsKey(TYPE_MAPPINGS))) {
+            applyTypeMappingsKvpList(typeMappings, configurator);
+        }
+
+        // Apply Language Specific Primitives
+        if (languageSpecificPrimitives != null
+            && (configOptions == null || !configOptions.containsKey(LANGUAGE_SPECIFIC_PRIMITIVES))) {
+            applyLanguageSpecificPrimitivesCsvList(languageSpecificPrimitives, configurator);
+        }
+
+        // Apply Additional Properties
+        if (additionalProperties != null && (configOptions == null || !configOptions.containsKey(
+            ADDITIONAL_PROPERTIES))) {
+            applyAdditionalPropertiesKvpList(additionalProperties, configurator);
+        }
+
+        if (serverVariableOverrides != null && (configOptions == null || !configOptions.containsKey(
+            SERVER_VARIABLES))) {
+            applyServerVariablesKvpList(serverVariableOverrides, configurator);
+        }
+
+        // Apply Reserved Words Mappings
+        if (reservedWordsMappings != null && (configOptions == null || !configOptions.containsKey(
+            RESERVED_WORDS_MAPPINGS))) {
+            applyReservedWordsMappingsKvpList(reservedWordsMappings, configurator);
+        }
+
+        if (environmentVariables != null) {
+
+            for (Entry<String, String> entry : environmentVariables.entrySet()) {
+                String key = entry.getKey();
+                originalEnvironmentVariables.put(key, GlobalSettings.getProperty(key));
+                String value = environmentVariables.get(key);
+                if (value == null) {
+                    // don't put null values
+                    value = "";
+                }
+                GlobalSettings.setProperty(key, value);
+                configurator.addSystemProperty(key, value);
+            }
+        }
+
+        final ClientOptInput input = configurator.toClientOptInput();
+        final CodegenConfig config = input.getConfig();
+
+        if (configOptions != null) {
+            for (CliOption langCliOption : config.cliOptions()) {
+                if (configOptions.containsKey(langCliOption.getOpt())) {
+                    input.getConfig().additionalProperties()
+                        .put(langCliOption.getOpt(), configOptions.get(langCliOption.getOpt()));
+                }
+            }
+        }
+
+        if (configHelp) {
+            for (CliOption langCliOption : config.cliOptions()) {
+                getLog().info("\t" + langCliOption.getOpt());
+                getLog().info("\t    "
+                    + langCliOption.getOptionHelp().replace("\n", "\n\t    "));
+            }
+            return;
+        }
+        adjustAdditionalProperties(config);
+
+        if (unAlias) {
+            new UnAliasTransformer().transform(input.getOpenAPI(), emptyMap());
+            if (writeDebugFiles) {
+                java.nio.file.Files.write(new File(output, "openapi-unaliased.yaml").toPath(),
+                    Yaml.pretty(input.getOpenAPI()).getBytes());
+            }
+        }
+        if (dereferenceComponents) {
+            new DereferenceComponentsPropertiesTransformer().transform(input.getOpenAPI(), emptyMap());
+            if (writeDebugFiles) {
+                java.nio.file.Files.write(new File(output, "openapi-dereferenced.yaml").toPath(),
+                    Yaml.pretty(input.getOpenAPI()).getBytes());
+            }
+        }
+
+        if (bundleSpecs) {
+            new Bundler(resource.getFile()).transform(input.getOpenAPI(), Collections.emptyMap());
+
+            if (writeDebugFiles) {
+                java.nio.file.Files.write(new File(output, "openapi-bundled.yaml").toPath(),
+                    Yaml.pretty(input.getOpenAPI()).getBytes());
+            }
+        }
+
+
+        new DefaultGenerator().opts(input).generate();
+
+        if (buildContext != null) {
+            buildContext.refresh(new File(getCompileSourceRoot()));
+        }
+
+        // Store a checksum of the input spec
+        File storedInputSpecHashFile = getHashFile(resource.getFile());
+        String inputSpecHash = resource.getHash();
+
+        if (storedInputSpecHashFile.getParent() != null && !new File(storedInputSpecHashFile.getParent()).exists()) {
+            File parent = new File(storedInputSpecHashFile.getParent());
+            parent.mkdirs();
+        }
+        Files.asCharSink(storedInputSpecHashFile, StandardCharsets.UTF_8).write(inputSpecHash);
     }
 
     /**
@@ -1046,5 +1001,37 @@ public class GenerateMojo extends AbstractMojo {
                 configAdditionalProperties.put(key, Boolean.FALSE);
             }
         }
+    }
+
+    private String readAuthorization() throws MojoExecutionException {
+        final Server server = session.getSettings().getServer(serverId);
+
+        if (server == null) {
+            throw new MojoExecutionException(format("Cannot find serverId \"%s\" in Maven settings", serverId));
+        }
+
+        final SettingsDecryptionRequest request = new DefaultSettingsDecryptionRequest(server);
+        final SettingsDecryptionResult result = decrypter.decrypt(request);
+
+        // Un-encrypted passwords are passed through, so a problem indicates a real issue.
+        // If there are any ERROR or FATAL problems reported, then decryption failed.
+        for (SettingsProblem problem : result.getProblems()) {
+            switch (problem.getSeverity()) {
+                case ERROR:
+                case FATAL:
+                    throw new MojoExecutionException(
+                        format("Unable to decrypt serverId \"%s\":%s ", serverId, problem));
+
+                default:
+                    getLog().warn(format("Decrypting \"%s\": %s", serverId, problem));
+            }
+        }
+
+        final Server resultServer = result.getServer();
+        final String username = resultServer.getUsername();
+        final String password = resultServer.getPassword();
+        final String auth = username + ":" + password;
+
+        return "Authorization: Basic " + Base64.getEncoder().encodeToString(auth.getBytes(Charset.forName("UTF-8")));
     }
 }
